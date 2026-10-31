@@ -1,0 +1,1245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Code Understanding Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Nunito:wght@500;600;700;800;900&display=swap">
+<style>
+/* Layout: one centred column per screen, chunky tactile controls, a thick rounded progress bar; the mascot appears at the start, between parts and at the end. */
+:root{
+  --bg:#f6f6fb; --surface:#ffffff; --raised:#f1f1f8; --ink:#1f2140; --muted:#676b8c; --line:#e2e2ee; --line-strong:#cdcee2;
+  --brand:#7c5cff; --brand-dark:#5a3fd8; --brand-soft:#efeaff; --brand-ink:#ffffff;
+  --sun:#ffc83d; --sun-dark:#d99a00; --sun-soft:#fff5d9;
+  --go:#22b864; --go-dark:#178a4a; --go-soft:#e1f6ea;
+  --coral:#ff6b6b; --coral-dark:#d64545; --coral-soft:#ffe9e9;
+  --code-bg:#f3f2fb;
+  /* names used by the experimenter screens */
+  --accent:var(--brand); --accent-ink:var(--brand-ink); --accent-soft:var(--brand-soft);
+  --ctrl:#c46f00; --ctrl-soft:#fff1d6; --ok:var(--go-dark); --ok-soft:var(--go-soft); --bad:var(--coral-dark); --bad-soft:var(--coral-soft); --warn:#b36b00; --warn-soft:var(--sun-soft);
+  --sans:'Nunito',ui-rounded,'SF Pro Rounded',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#13142a; --surface:#1c1e39; --raised:#24264a; --ink:#eef0ff; --muted:#a3a7cc; --line:#32355d; --line-strong:#454879;
+  --brand:#9d88ff; --brand-dark:#6b54e0; --brand-soft:#2a2759; --brand-ink:#14152b;
+  --sun:#ffd25e; --sun-dark:#b98a10; --sun-soft:#3a3220;
+  --go:#46d488; --go-dark:#2a9c5d; --go-soft:#1b3a2b;
+  --coral:#ff8a8a; --coral-dark:#ff9b9b; --coral-soft:#3e2229;
+  --code-bg:#171933; --ctrl:#ffb44d; --ctrl-soft:#3a2c17; --warn:#ffc35c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#13142a; --surface:#1c1e39; --raised:#24264a; --ink:#eef0ff; --muted:#a3a7cc; --line:#32355d; --line-strong:#454879;
+  --brand:#9d88ff; --brand-dark:#6b54e0; --brand-soft:#2a2759; --brand-ink:#14152b;
+  --sun:#ffd25e; --sun-dark:#b98a10; --sun-soft:#3a3220;
+  --go:#46d488; --go-dark:#2a9c5d; --go-soft:#1b3a2b;
+  --coral:#ff8a8a; --coral-dark:#ff9b9b; --coral-soft:#3e2229;
+  --code-bg:#171933; --ctrl:#ffb44d; --ctrl-soft:#3a2c17; --warn:#ffc35c; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.55;margin:0;font-weight:500}
+.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:22px 72px}
+.wrap.wide{max-width:980px}
+h1,h2,h3{text-wrap:balance;line-height:1.2;margin:0;font-weight:800}
+h1{font-size:1.75rem;letter-spacing:-.01em}
+h2{font-size:1.25rem}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:.9rem}
+.label{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:800}
+code{font-family:var(--mono);font-size:.88em;background:var(--code-bg);padding:1px 6px;border-radius:6px;border:1px solid var(--line)}
+.stack{display:flex;flex-direction:column;gap:12px}
+.stack-lg{display:flex;flex-direction:column;gap:24px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.spread{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+
+/* top bar */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(6px);border-bottom:2px solid var(--line)}
+.bar-in{max-width:980px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;min-height:58px}
+.brand{font-weight:900;display:flex;align-items:center;gap:8px}
+.nav{display:flex;gap:6px;flex-wrap:wrap}
+.nav a{color:var(--muted);text-decoration:none;padding:7px 12px;border-radius:12px;font-weight:800;font-size:.95rem;border:2px solid transparent}
+.nav a[aria-current="page"]{background:var(--brand-soft);color:var(--brand);border-color:var(--brand)}
+.progress{height:14px;border-radius:999px;background:var(--line);max-width:688px;width:calc(100% - 32px);margin:0 auto 12px;overflow:hidden}
+.progress i{display:block;height:100%;border-radius:999px;background:var(--go);position:relative;transition:width .45s cubic-bezier(.3,1.4,.5,1);min-width:14px}
+.progress i::after{content:"";position:absolute;left:8px;right:8px;top:3px;height:4px;border-radius:999px;background:rgba(255,255,255,.35)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-weight:800;padding:4px 12px;border-radius:999px;background:var(--surface);border:2px solid var(--line)}
+.timer{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:700;font-size:1.05rem;color:var(--brand);border-color:var(--brand)}
+.timer.low{color:var(--coral-dark);border-color:var(--coral);background:var(--coral-soft)}
+.timer svg{width:16px;height:16px}
+
+/* cards */
+.card{background:var(--surface);border:2px solid var(--line);border-radius:20px;padding:22px}
+.hint{background:var(--raised);border:2px solid var(--line);border-radius:16px;padding:12px 16px;font-size:.95rem}
+.hint.warn{background:var(--sun-soft);border-color:var(--sun)}
+.hint.ok{background:var(--go-soft);border-color:var(--go)}
+
+/* inputs */
+label.f{display:flex;flex-direction:column;gap:6px;font-weight:800}
+input[type=text],input[type=number],textarea{font:inherit;font-weight:600;color:var(--ink);background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:12px 14px;width:100%}
+input[type=text]:focus,input[type=number]:focus,textarea:focus{border-color:var(--brand);outline:none;box-shadow:0 0 0 4px var(--brand-soft)}
+textarea{min-height:120px;resize:vertical}
+textarea.code{font-family:var(--mono);font-size:14.5px;font-weight:500;line-height:1.65;min-height:200px;tab-size:4;white-space:pre;overflow-x:auto;background:var(--code-bg)}
+button:focus-visible,summary:focus-visible,a:focus-visible,.tile:focus-visible,.cline:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.check{display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-weight:600}
+.check input{width:22px;height:22px;margin-top:2px;accent-color:var(--brand);flex:none}
+
+/* chunky buttons */
+button{font:inherit;font-weight:800;border-radius:16px;border:2px solid var(--line);background:var(--surface);color:var(--ink);padding:11px 20px;cursor:pointer;box-shadow:0 4px 0 var(--line-strong);transition:transform .06s,box-shadow .06s;letter-spacing:.02em}
+button:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--line-strong)}
+button.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink);box-shadow:0 4px 0 var(--brand-dark);text-transform:uppercase;letter-spacing:.06em}
+button.primary:active:not(:disabled){box-shadow:0 1px 0 var(--brand-dark)}
+button.go{background:var(--go);border-color:var(--go);color:#fff;box-shadow:0 4px 0 var(--go-dark);text-transform:uppercase;letter-spacing:.06em}
+button.go:active:not(:disabled){box-shadow:0 1px 0 var(--go-dark)}
+button.big{padding:15px 30px;font-size:1.05rem;min-width:180px}
+button.link{border:0;background:none;padding:4px 0;color:var(--brand);box-shadow:none}
+button.danger{color:var(--coral-dark);border-color:var(--coral);background:var(--surface);box-shadow:0 4px 0 var(--coral-soft)}
+button.small{padding:6px 12px;font-size:.88rem;border-radius:12px;box-shadow:0 3px 0 var(--line-strong)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.actions{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center}
+
+/* choice cards */
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.choice{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:14px 16px;text-transform:none;letter-spacing:0}
+.choice b{font-size:1.02rem;font-weight:800}
+.choice span{font-size:.88rem;color:var(--muted);font-weight:600}
+.choice[aria-pressed="true"]{border-color:var(--brand);background:var(--brand-soft);box-shadow:0 4px 0 var(--brand)}
+.choice[aria-pressed="true"] b{color:var(--brand)}
+.scale{display:flex;gap:10px;flex-wrap:wrap}
+.scale .choice{align-items:center;min-width:58px;padding:12px 16px}
+
+pre.code{font-family:var(--mono);font-size:14px;line-height:1.65;background:var(--code-bg);border:2px solid var(--line);border-radius:14px;padding:12px 14px;margin:0;overflow-x:auto;white-space:pre}
+details.ref{border:2px solid var(--line);border-radius:16px;background:var(--surface)}
+details.ref summary{cursor:pointer;padding:12px 16px;font-weight:800;display:flex;align-items:center;gap:8px}
+details.ref summary svg{width:20px;height:20px;flex:none}
+details.ref>div{padding:0 16px 16px;display:flex;flex-direction:column;gap:10px}
+details.tip{border-color:var(--sun);background:var(--sun-soft)}
+
+/* Task 1: tile puzzle */
+.board{display:flex;flex-direction:column;gap:8px;min-height:250px;padding:12px;border-radius:18px;background:var(--code-bg);border:2px dashed var(--line-strong)}
+.slot{height:46px;border-radius:14px;border:2px dashed var(--line-strong);opacity:.6}
+.bank{display:flex;flex-direction:column;gap:8px}
+.tile{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border-radius:14px;border:2px solid var(--line);background:var(--surface);box-shadow:0 4px 0 var(--line-strong);cursor:pointer;text-align:left;font:inherit;color:var(--ink);touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.tile .num{flex:none;width:26px;height:26px;border-radius:9px;background:var(--brand-soft);color:var(--brand);font-weight:900;font-size:.85rem;display:grid;place-items:center}
+.tile .txt{font-family:var(--mono);font-size:14px;white-space:pre;overflow-x:auto;font-weight:500}
+.tile.ghost{visibility:visible;background:var(--raised);box-shadow:none;border-style:dashed;cursor:default}
+.tile.ghost>*{visibility:hidden}
+.tile.placed{border-color:var(--brand);box-shadow:0 4px 0 var(--brand-dark)}
+.tile.sortable-ghost{opacity:.35}
+.tile.sortable-chosen{box-shadow:0 8px 18px rgba(0,0,0,.18)}
+.handle{flex:none;margin-left:auto;color:var(--muted);cursor:grab;display:grid;place-items:center;padding:2px 4px}
+.handle svg{width:18px;height:18px}
+
+/* Task 2: tap-a-line editor */
+.lines{border:2px solid var(--line);border-radius:16px;background:var(--code-bg);overflow:hidden}
+.cline{display:flex;align-items:stretch;gap:0;width:100%;border:0;border-bottom:1px solid var(--line);background:none;padding:0;border-radius:0;box-shadow:none;text-align:left;font:inherit;color:var(--ink);cursor:pointer;text-transform:none;letter-spacing:0}
+.cline:last-child{border-bottom:0}
+.cline:active:not(:disabled){transform:none;box-shadow:none}
+.cline .ln{flex:none;width:42px;padding:9px 0;text-align:center;color:var(--muted);font-family:var(--mono);font-size:13px;background:color-mix(in srgb,var(--line) 45%,transparent)}
+.cline .src{flex:1;padding:9px 12px;font-family:var(--mono);font-size:14.5px;white-space:pre;overflow-x:auto;font-weight:500;min-width:0}
+.cline:hover .src{background:var(--brand-soft)}
+.cline.edited .ln{background:var(--sun);color:#3b2a00;font-weight:800}
+.cline.editing{background:var(--surface)}
+.cline input{font-family:var(--mono);font-size:14.5px;border:0;border-radius:0;padding:9px 12px;background:var(--surface);box-shadow:inset 0 0 0 2px var(--brand)}
+
+.editorbar{display:flex;gap:8px;flex-wrap:wrap}
+
+/* mascot + speech bubble */
+.hero{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap}
+.mascot{width:120px;height:120px;flex:none}
+.bubble{position:relative;flex:1;min-width:220px;background:var(--surface);border:2px solid var(--line);border-radius:18px;padding:16px 18px;font-weight:700;font-size:1.1rem}
+.bubble::before{content:"";position:absolute;left:-11px;bottom:26px;width:18px;height:18px;background:var(--surface);border-left:2px solid var(--line);border-bottom:2px solid var(--line);transform:rotate(45deg)}
+@media (max-width:520px){.bubble::before{display:none}.mascot{width:96px;height:96px}}
+.center{text-align:center;align-items:center}
+.bigicon{width:140px;height:140px}
+
+/* chips + experimenter tables */
+.chip{display:inline-flex;align-items:center;font-size:.8rem;font-weight:800;padding:2px 10px;border-radius:999px;border:2px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.ai{color:var(--brand);border-color:var(--brand);background:var(--brand-soft)}
+.chip.ctrl{color:var(--ctrl);border-color:var(--ctrl);background:var(--ctrl-soft)}
+.chip.ok{color:var(--ok);border-color:var(--go);background:var(--go-soft)}
+.chip.warn{color:var(--warn);border-color:var(--sun);background:var(--sun-soft)}
+.chip.bad{color:var(--coral-dark);border-color:var(--coral);background:var(--coral-soft)}
+.list{display:flex;flex-direction:column;border:2px solid var(--line);border-radius:18px;background:var(--surface);overflow:hidden}
+.item+.item{border-top:2px solid var(--line)}
+.item>summary{list-style:none;cursor:pointer;padding:12px 16px;display:grid;grid-template-columns:70px 90px 1fr auto;gap:10px;align-items:center}
+.item>summary::-webkit-details-marker{display:none}
+.item>summary .chip{justify-self:start}
+.item>summary .nums{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.88rem;color:var(--muted)}
+.item[open]>summary{background:var(--raised)}
+.item .body{padding:16px;display:flex;flex-direction:column;gap:14px;border-top:2px solid var(--line)}
+@media (max-width:560px){.item>summary{grid-template-columns:60px 1fr auto}.item>summary .nums{display:none}}
+.ticks{display:inline-flex;gap:4px;flex-wrap:wrap}
+.tick{font-family:var(--mono);font-size:.75rem;padding:1px 6px;border-radius:6px;font-weight:700}
+.tick.p{background:var(--go-soft);color:var(--ok)}
+.tick.f{background:var(--coral-soft);color:var(--coral-dark)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.stats>div{background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:10px 14px}
+.stats b{display:block;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:1.3rem}
+.verdict{font-size:1.05rem;font-weight:800}
+svg text{fill:var(--muted);font-family:var(--sans);font-size:12px;font-weight:700}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line)}
+th{font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* overlays */
+.modal{position:fixed;inset:0;z-index:20;background:color-mix(in srgb,#0b0c1a 55%,transparent);display:flex;align-items:center;justify-content:center;padding:16px}
+.modal .card{max-width:420px;width:100%}
+.countdown{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:var(--bg)}
+.countdown b{font-size:min(38vw,220px);font-weight:900;color:var(--brand);line-height:1}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:40}
+.calm h1{font-weight:700}
+.calm button.primary{text-transform:none;letter-spacing:.01em}
+.calm .card{border-color:var(--line)}
+@media (prefers-reduced-motion:no-preference){
+  .fade{animation:fade .25s ease-out}
+  @keyframes fade{from{opacity:.2;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .pop{animation:pop .28s cubic-bezier(.3,1.6,.5,1)}
+  @keyframes pop{from{transform:scale(.85)}to{transform:scale(1)}}
+  .bob{animation:bob 2.4s ease-in-out infinite}
+  @keyframes bob{50%{transform:translateY(-6px)}}
+  .countdown b{animation:zoom .9s ease-out both}
+  @keyframes zoom{from{transform:scale(1.6);opacity:0}30%{opacity:1}to{transform:scale(1);opacity:1}}
+}
+</style>
+<style>[hidden]{display:none!important}img{max-width:100%}</style>
+<script src="config.js"></script>
+</head>
+<body>
+
+
+<header class="bar"><div class="bar-in" id="bar"></div><div class="progress" id="progress" hidden><i></i></div></header>
+<main class="wrap" id="app"><p class="muted">Loading…</p></main>
+<div id="modal-root"></div>
+
+<script>
+/*PURE-START*/
+const T1_LINES = {
+  1: "    return total / len(numbers)",
+  2: "    total = 0",
+  3: "        total += n",
+  4: "def average(numbers):",
+  5: "    for n in numbers:"
+};
+const T2_TEMPLATE = "def count_even(numbers):\n    count = 0\n    for n in numbers:\n        if n % 2 == 1:\n            count += 1\n    return count\n";
+const T3_TEMPLATE = "from collections import Counter\n\ndef top_word(text):\n    # TODO: finish this function\n";
+const TESTS = {
+  t1: { fn: "average", cases: [[[2,4,6],4.0],[[5],5.0],[[1,2,3,4],2.5]] },
+  t2: { fn: "count_even", cases: [[[2,4,6,7],3],[[],0],[[1,3,5],0]] },
+  t3: { fn: "top_word", cases: [["the cat and the hat","the"],["Apple apple banana","apple"],["one","one"],["b a B c b a","b"]] },
+  mod: { fn: "__MOD__", cases: [["a b a c b a",["a","b"]],["x y x",["x","y"]],["Red red blue green green green",["green","red"]],["cat dog cat",["cat","dog"]]] }
+};
+
+function parseOrder(s){
+  const d = String(s||"").match(/[1-5]/g) || [];
+  if (d.length !== 5) return null;
+  if (new Set(d).size !== 5) return null;
+  return d.map(Number);
+}
+function buildT1(order){ return order.map(i => T1_LINES[i]).join("\n") + "\n"; }
+
+// JSON literals are valid Python literals for the numbers, plain strings and lists used in the tests.
+function pyLit(v){ return JSON.stringify(v); }
+function harness(kind, input, expected){
+  const fnLine = kind === "mod"
+    ? "    try:\n        __f = top_two\n    except NameError:\n        __f = top_word\n"
+    : "    __f = " + TESTS[kind].fn + "\n";
+  const cmp = kind === "mod"
+    ? "    __ok = isinstance(__r, (list, tuple)) and list(__r) == __exp\n"
+    : "    __ok = (__r == __exp)\n";
+  return "\n\n__inp = " + pyLit(input) + "\n__exp = " + pyLit(expected) + "\ntry:\n" + fnLine +
+    "    __r = __f(__inp)\n" + cmp + "except Exception:\n    __ok = False\nprint('@@RESULT@@' + ('1' if __ok else '0'))\n";
+}
+
+function normQ3a(s){ return String(s||"").replace(/[,()\[\]'"]/g," ").trim().split(/\s+/).filter(Boolean).join(" "); }
+function normQ3b(s){ return String(s||"").replace(/['"\s]/g,""); }
+function scoreQ3(a,b){ return (normQ3a(a)==="3 0"?1:0) + (normQ3b(b)==="a"?1:0); }
+
+function median(xs){ if(!xs.length) return null; const s=[...xs].sort((a,b)=>a-b); const m=Math.floor(s.length/2); return s.length%2? s[m] : (s[m-1]+s[m])/2; }
+function mean(xs){ return xs.length? xs.reduce((a,b)=>a+b,0)/xs.length : null; }
+function sd(xs){ if(xs.length<2) return null; const m=mean(xs); return Math.sqrt(xs.reduce((a,b)=>a+(b-m)*(b-m),0)/(xs.length-1)); }
+
+function erf(x){ // Abramowitz & Stegun 7.1.26
+  const s = x<0?-1:1; x=Math.abs(x);
+  const t=1/(1+0.3275911*x);
+  const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);
+  return s*y;
+}
+function Phi(z){ return 0.5*(1+erf(z/Math.SQRT2)); }
+
+// Mann–Whitney U for sample a vs b. U1 counts pairs where a > b (ties 0.5).
+function mannWhitney(a, b){
+  const n1=a.length, n2=b.length, N=n1+n2;
+  if (n1<1||n2<1) return null;
+  const all = a.map(v=>({v,g:0})).concat(b.map(v=>({v,g:1}))).sort((x,y)=>x.v-y.v);
+  const ranks = new Array(N); let tieSum=0, hasTies=false;
+  for (let i=0;i<N;){ let j=i; while(j+1<N && all[j+1].v===all[i].v) j++; const r=(i+j)/2+1; for(let k=i;k<=j;k++) ranks[k]=r; const t=j-i+1; if(t>1){tieSum+=t*t*t-t;hasTies=true;} i=j+1; }
+  let R1=0; for(let k=0;k<N;k++) if(all[k].g===0) R1+=ranks[k];
+  const U1 = R1 - n1*(n1+1)/2;
+  const res = { U1, U2: n1*n2-U1, n1, n2, r_rb: 2*U1/(n1*n2)-1 };
+  if (!hasTies && N <= 80){
+    // exact null distribution of U1 via counting subsets of ranks 1..N of size n1 by rank sum
+    const maxS = N*(N+1)/2;
+    let f = Array.from({length:n1+1},()=>new Float64Array(maxS+1)); f[0][0]=1;
+    for (let r=1;r<=N;r++){ for (let k=Math.min(r,n1);k>=1;k--){ const fk=f[k], fk1=f[k-1]; for (let s=maxS;s>=r;s--){ if(fk1[s-r]) fk[s]+=fk1[s-r]; } } }
+    const dist = f[n1]; let total=0; for (let s=0;s<=maxS;s++) total+=dist[s];
+    const off = n1*(n1+1)/2; let ge=0, le=0;
+    for (let s=0;s<=maxS;s++){ if(!dist[s]) continue; const u=s-off; if(u>=U1-1e-9) ge+=dist[s]; if(u<=U1+1e-9) le+=dist[s]; }
+    res.method="exact"; res.p_greater=ge/total; res.p_less=le/total; res.p_two=Math.min(1,2*Math.min(res.p_greater,res.p_less));
+  } else {
+    const mu=n1*n2/2, sigma=Math.sqrt(n1*n2/12*((N+1)-tieSum/(N*(N-1))));
+    if (sigma===0){ res.method="normal"; res.p_greater=1; res.p_less=1; res.p_two=1; return res; }
+    res.method="normal approximation (ties)";
+    res.p_greater = 1-Phi((U1-mu-0.5)/sigma);
+    res.p_less = Phi((U1-mu+0.5)/sigma);
+    res.p_two = Math.min(1, 2*(1-Phi((Math.abs(U1-mu)-0.5)/sigma)));
+  }
+  return res;
+}
+
+function lnFact(n){ let s=0; for(let i=2;i<=n;i++) s+=Math.log(i); return s; }
+// Fisher's exact test on [[a,b],[c,d]] where rows = AI, Control; cols = full, not full.
+function fisher(a,b,c,d){
+  const r1=a+b, r2=c+d, c1=a+c, N=a+b+c+d;
+  if (N===0) return null;
+  const lo=Math.max(0,c1-r2), hi=Math.min(r1,c1);
+  const lp = x => lnFact(r1)+lnFact(r2)+lnFact(c1)+lnFact(N-c1)-lnFact(N)-lnFact(x)-lnFact(r1-x)-lnFact(c1-x)-lnFact(r2-c1+x);
+  const pObs=Math.exp(lp(a)); let less=0, greater=0, two=0;
+  for (let x=lo;x<=hi;x++){ const p=Math.exp(lp(x)); if(x<=a) less+=p; if(x>=a) greater+=p; if(p<=pObs*(1+1e-7)) two+=p; }
+  return { p_less:Math.min(1,less), p_greater:Math.min(1,greater), p_two:Math.min(1,two) };
+}
+/*PURE-END*/
+
+/* ---------- Skulpt grading (loaded only on the experimenter views) ---------- */
+let skulptPromise=null;
+function loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement("script"); s.src=src; s.onload=res; s.onerror=()=>rej(new Error("load failed: "+src)); document.head.appendChild(s); }); }
+function loadSkulpt(){
+  if (!skulptPromise){
+    skulptPromise = loadScript("https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js")
+      .then(()=>loadScript("https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"))
+      .catch(e=>{ skulptPromise=null; throw e; });
+  }
+  return skulptPromise;
+}
+let runQueue = Promise.resolve();
+function runPython(src){
+  const job = runQueue.then(()=> new Promise(resolve=>{
+    let out="";
+    Sk.configure({ output:t=>{ out+=t; }, read:f=>{ if(!Sk.builtinFiles || Sk.builtinFiles.files[f]===undefined) throw "File not found: '"+f+"'"; return Sk.builtinFiles.files[f]; },
+      __future__:Sk.python3, execLimit:2000, inputfun:()=>"" });
+    Sk.misceval.asyncToPromise(()=>Sk.importMainWithBody("<stdin>",false,src,true))
+      .then(()=>resolve({ok:true,out}), e=>resolve({ok:false,out,err:String(e)}));
+  }));
+  runQueue = job.catch(()=>{});
+  return job;
+}
+const gradeCache = new Map();
+async function gradeCode(kind, code){
+  if (code==null || !String(code).trim()) return TESTS[kind].cases.map(()=>0);
+  const key = kind+"\u0000"+code;
+  if (gradeCache.has(key)) return gradeCache.get(key);
+  await loadSkulpt();
+  const out=[];
+  let stuck=false;
+  for (const [inp,exp] of TESTS[kind].cases){
+    if (stuck){ out.push(0); continue; }
+    const r = await runPython(String(code)+harness(kind,inp,exp));
+    if (!r.ok && /TimeLimitError/.test(r.err||"")) stuck=true; // code that never stops fails the remaining tests too
+    out.push(r.ok && r.out.includes("@@RESULT@@1") ? 1 : 0);
+  }
+  gradeCache.set(key,out);
+  return out;
+}
+async function gradeSession(s){
+  const order = parseOrder(s.tasks?.t1_order);
+  const t1 = order ? await gradeCode("t1", buildT1(order)) : [0,0,0];
+  // Kit rule: a task left as given (not attempted) scores 0 on its tests.
+  const t2 = (s.tasks?.t2_code||"")===T2_TEMPLATE ? [0,0,0] : await gradeCode("t2", s.tasks?.t2_code);
+  const t3 = (s.tasks?.t3_code||"").trim()===T3_TEMPLATE.trim() ? [0,0,0,0] : await gradeCode("t3", s.tasks?.t3_code);
+  const mod = await gradeCode("mod", s.understanding?.mod_code);
+  return { t1, t2, t3, mod };
+}
+
+
+
+/* ---------- storage: the group's Google Sheet (via Apps Script), this device as a backup ---------- */
+const CFG=window.STUDY_CONFIG||{}, API=String(CFG.sheetUrl||"").trim();
+const LS_KEY="psp404-kit2-sessions", DRAFT_KEY="psp404-kit2-draft", OUTBOX_KEY="psp404-outbox", GKEY="psp404-group-key", DONE_KEY="psp404-done-codes", ISSUED_KEY="psp404-issued-codes";
+function lsGet(k,f){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):f; }catch(e){ return f; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); return true; }catch(e){ return false; } }
+const store={ local:lsGet(LS_KEY,{}), remote:new Map(), consentsLocal:lsGet("psp404-kit2-consents",{}), consentsRemote:null,
+  key:lsGet(GKEY,""), keyOk:null, outbox:lsGet(OUTBOX_KEY,[]), timers:new Map(), lastLoad:0, err:"" };
+function allSessions(){
+  const m=new Map(Object.entries(store.local));
+  for(const [id,s] of store.remote) m.set(id,s); // the sheet is the record; this device only adds sessions not uploaded yet
+  return [...m.values()].sort((a,b)=>(a.created_at||0)-(b.created_at||0));
+}
+function saveLocal(s){ store.local[s.id]=s; lsSet(LS_KEY,store.local); }
+async function api(payload){
+  const r=await fetch(API,{method:"POST",body:JSON.stringify(payload),headers:{"Content-Type":"text/plain;charset=utf-8"}});
+  return r.json();
+}
+async function apiGet(params){ const r=await fetch(API+(API.includes("?")?"&":"?")+new URLSearchParams(params)); return r.json(); }
+let flushing=false;
+const uploadListeners=new Set();
+async function flush(){
+  if(!API||flushing||!store.outbox.length) return;
+  flushing=true;
+  try{
+    while(store.outbox.length){
+      const r=await api(store.outbox[0]);
+      if(!r||!r.ok) throw new Error((r&&r.error)||"upload failed");
+      store.outbox.shift(); lsSet(OUTBOX_KEY,store.outbox);
+    }
+    store.err="";
+  }catch(e){ store.err="Couldn't reach the group's Google Sheet. Saved on this device; it will try again."; }
+  finally{ flushing=false; refreshStatus(); uploadListeners.forEach(f=>f()); }
+}
+function queue(item){ store.outbox.push(item); lsSet(OUTBOX_KEY,store.outbox); flush(); }
+setInterval(flush,15000); window.addEventListener("online",flush);
+function saveSession(s){ s.updated_at=Date.now(); saveLocal(s); queue({action:"submit",session:s}); return Promise.resolve(); }
+function patchOf(s){ return { marks:s.marks||{}, ai:s.ai||{}, notes:s.notes||"", excluded:!!s.excluded, scores:s.scores||undefined, q3:s.q3 }; }
+async function pushUpdate(s){
+  if(!API||!store.key) return;
+  try{ const r=await api({action:"update",key:store.key,id:s.id,patch:patchOf(s)}); if(!r.ok) throw new Error(r.error); store.err=""; }
+  catch(e){ store.err="A change didn't reach the sheet ("+(e.message||"network")+"). Try again in a moment."; }
+  refreshStatus();
+}
+function saveSoon(s){ s.updated_at=Date.now(); if(store.local[s.id]) saveLocal(s); clearTimeout(store.timers.get(s.id)); store.timers.set(s.id,setTimeout(()=>pushUpdate(s),600)); }
+async function removeSession(id){
+  delete store.local[id]; lsSet(LS_KEY,store.local); store.remote.delete(id);
+  if(API&&store.key){ try{ await api({action:"delete",key:store.key,id}); }catch(e){} }
+}
+/* consent records: initials + date only, kept apart from the answers */
+function saveConsent(c){
+  const id="c_"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  store.consentsLocal[id]=c; lsSet("psp404-kit2-consents",store.consentsLocal);
+  queue({action:"consent",consent:c});
+}
+function allConsents(){ return store.consentsRemote || Object.values(store.consentsLocal); }
+async function loadRemote(){
+  if(!API||!store.key) return;
+  try{
+    const j=await apiGet({action:"list",key:store.key});
+    if(!j.ok){ store.keyOk=!/key/i.test(j.error||"") ? store.keyOk : false; store.err=j.error==="wrong key"?"":("The sheet replied: "+j.error); }
+    else{
+      store.keyOk=true; store.err="";
+      store.remote=new Map(j.sessions.map(x=>[x.id,x]));
+      // sessions now safely in the sheet no longer need the local copy
+      for(const id of Object.keys(store.local)) if(store.remote.has(id)) delete store.local[id];
+      lsSet(LS_KEY,store.local);
+      const c=await apiGet({action:"consents",key:store.key}); if(c.ok) store.consentsRemote=c.consents;
+    }
+  }catch(e){ store.err="Couldn't reach the group's Google Sheet. Check the internet connection."; }
+  store.lastLoad=Date.now(); refreshStatus(); dataChanged();
+}
+function initDb(){
+  flush();
+  if(store.key) loadRemote();
+  setInterval(()=>{ if(!participantMode&&store.key&&["results","analysis"].includes(currentRoute())&&!inFlow) loadRemote(); },30000);
+}
+function keyCard(){
+  if(!API) return el("div",{class:"hint warn small"},"The Google Sheet isn't connected yet. Put its web-app address in config.js (see the README). Until then, sessions are kept on this device.");
+  if(store.key&&store.keyOk!==false) return null;
+  const inp=el("input",{type:"password",id:"group-key",placeholder:"Group key",autocomplete:"off",style:"max-width:260px"});
+  const go=()=>{ const v=inp.value.trim(); if(!v) return; store.key=v; store.keyOk=null; lsSet(GKEY,v); loadRemote().then(()=>route()); };
+  inp.addEventListener("keydown",e=>{ if(e.key==="Enter") go(); });
+  return el("div",{class:"card stack"},el("h2",{},"Connect to the group's results"),
+    el("p",{class:"muted small"}, store.keyOk===false? "That key wasn't accepted. Check it with your group and try again." : "Enter the group key once on this device to see everyone's sessions from the Google Sheet."),
+    el("div",{class:"row"},inp,el("button",{class:"primary",onclick:go},"Connect")));
+}
+
+/* ---------- helpers ---------- */
+function el(tag,attrs={},...kids){
+  const n=document.createElement(tag);
+  for(const [k,v] of Object.entries(attrs||{})){
+    if(v==null||v===false) continue;
+    if(k==="class") n.className=v; else if(k.startsWith("on")) n.addEventListener(k.slice(2),v);
+    else if(k==="value") n.value=v; else if(v===true) n.setAttribute(k,""); else n.setAttribute(k,v);
+  }
+  for(const c of kids.flat()){ if(c==null||c===false) continue; n.appendChild(typeof c==="object"?c:document.createTextNode(String(c))); }
+  return n;
+}
+const pre=t=>el("pre",{class:"code"},t);
+function codeBox(id,value,onInput){
+  const t=el("textarea",{class:"code",id,spellcheck:"false",autocapitalize:"off",autocomplete:"off",autocorrect:"off"}); t.value=value||"";
+  t.addEventListener("keydown",e=>{ if(e.key==="Tab"&&!e.shiftKey){ e.preventDefault(); const s=t.selectionStart,en=t.selectionEnd; t.value=t.value.slice(0,s)+"    "+t.value.slice(en); t.selectionStart=t.selectionEnd=s+4; onInput(t.value); } });
+  t.addEventListener("input",()=>onInput(t.value)); return t;
+}
+function textBox(id,value,onInput){ const t=el("textarea",{id}); t.value=value||""; t.addEventListener("input",()=>onInput(t.value)); return t; }
+function choices(opts,current,onPick,cls){
+  const wrap=el("div",{class:cls||"choices",role:"group"});
+  for(const [v,title,sub] of opts){
+    const b=el("button",{type:"button",class:"choice","aria-pressed":String(String(current)===String(v)),"data-v":v},el("b",{},title),sub?el("span",{},sub):null);
+    b.addEventListener("click",()=>{ wrap.querySelectorAll(".choice").forEach(x=>x.setAttribute("aria-pressed",String(x===b))); onPick(v); });
+    wrap.appendChild(b);
+  }
+  return wrap;
+}
+/* experimenter escape hatch while a participant session is running */
+function sessionOptions(){
+  if(!draft) return;
+  const root=document.getElementById("modal-root"), close=()=>root.innerHTML="";
+  const restart=()=>{ close(); clearInterval(tick);
+    const now=Date.now();
+    draft={ id:draft.code+"_"+now.toString(36), code:draft.code, group:draft.group, level:draft.level, pilot:draft.pilot, model:draft.model||"", created_at:now, step:"consent",
+      tasks:{t1_order:"",t1_seq:[],t2_code:T2_TEMPLATE,t3_code:T3_TEMPLATE}, understanding:{}, questionnaire:{} };
+    saveDraft(); show(); };
+  const discard=()=>{ close(); clearInterval(tick); clearDraft(); participantMode=false; location.hash="#setup"; route(); };
+  root.innerHTML=""; root.appendChild(el("div",{class:"modal",role:"dialog","aria-modal":"true"},
+    el("div",{class:"card stack fade"},
+      el("div",{class:"label"},"For the experimenter"),
+      el("h2",{},"Session "+draft.code+" · "+(draft.group==="AI"?"AI group":"Control group")),
+      el("p",{class:"muted small"},"Restart clears this participant's answers and starts again from the consent screen with the same code and group. Stop goes back to Run session and saves nothing."),
+      el("div",{class:"stack"},
+        el("button",{class:"primary",onclick:restart},"Restart this session"),
+        el("button",{class:"danger",onclick:discard},"Stop and discard"),
+        el("button",{onclick:close},"Cancel")))));
+}
+function confirmBox(title,text,okLabel,onOk,danger){
+  const root=document.getElementById("modal-root"); const close=()=>root.innerHTML="";
+  const ok=el("button",{class:danger?"danger":"primary",onclick:()=>{ close(); onOk(); }},okLabel);
+  root.innerHTML=""; root.appendChild(el("div",{class:"modal",role:"dialog","aria-modal":"true"},
+    el("div",{class:"card stack fade"},el("h2",{},title),el("p",{class:"muted"},text),el("div",{class:"row",style:"justify-content:flex-end"},el("button",{onclick:close},"Go back"),ok))));
+  ok.focus();
+}
+function fmtTime(s){ s=Math.max(0,Math.round(s)); return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0"); }
+function fmtP(p){ return p==null||isNaN(p)?"—":p<0.001?"< .001":p.toFixed(3).replace(/^0/,""); }
+function fmtN(x,d=1){ return x==null||isNaN(x)?"—":String(Math.round(x*10**d)/10**d); }
+function refCard(open){
+  return el("details",{class:"ref",open:!!open},el("summary",{},"Reference card: Counter"),
+    el("div",{},
+      el("p",{class:"small"},el("b",{},"Counter")," counts how many times each item appears."),
+      pre('from collections import Counter\n\nc = Counter(["red", "blue", "red"])\nc                →  Counter({\'red\': 2, \'blue\': 1})\nc["red"]         →  2\nc["pink"]        →  0      # never appeared\nc.most_common(1) →  [(\'red\', 2)]\nc.most_common(2) →  [(\'red\', 2), (\'blue\', 1)]'),
+      el("p",{class:"small"},el("code",{},"most_common(n)")," gives a list of (item, count) pairs, most common first."),
+      pre('"Hi There".lower()  →  \'hi there\'\n"hi there".split()  →  [\'hi\', \'there\']')));
+}
+
+/* ---------- top bar ---------- */
+let participantMode=false;
+function paintBar(extra){
+  const bar=document.getElementById("bar"); bar.innerHTML="";
+  if(participantMode){
+    const opts= draft&&draft.remote ? el("span",{class:"pill small"},draft.code) : el("button",{type:"button",class:"small","aria-label":"Experimenter options",title:"Experimenter options",onclick:sessionOptions},(draft?draft.code:"")+" ⋯");
+    bar.append(el("div",{class:"brand"},mascot("hi",34),"Coding study"), el("div",{class:"row"},extra||null,opts));
+    return;
+  }
+  const r=currentRoute();
+  bar.append(el("div",{class:"brand"},"Code Understanding Study"),
+    el("nav",{class:"nav"}, [["setup","Run session"],["results","Results"],["analysis","Analysis"]].map(([k,t])=>el("a",{href:"#"+k,"aria-current":r===k?"page":"false"},t))));
+}
+function setProgress(f){ const p=document.getElementById("progress"); if(f==null){ p.hidden=true; return; } p.hidden=false; p.firstChild.style.width=Math.round(f*100)+"%"; }
+function statusInner(){
+  if(!API) return el("div",{class:"hint warn small"},"Not connected to the Google Sheet yet (see README). Sessions are kept on this device.");
+  const pending=store.outbox.filter(x=>x.action==="submit").length;
+  if(store.err) return el("div",{class:"hint warn small"},store.err+(pending?" "+pending+" session"+(pending===1?"":"s")+" waiting to upload.":""));
+  if(pending) return el("p",{class:"small muted"},"Uploading "+pending+" session"+(pending===1?"":"s")+" to the group's Google Sheet…");
+  const t=store.lastLoad? " Last refreshed "+new Date(store.lastLoad).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})+"." : "";
+  return el("div",{class:"row"},el("span",{class:"small muted"},"Finished sessions go straight to the group's Google Sheet."+t), store.key? el("button",{class:"small",onclick:()=>loadRemote()},"Refresh") : null);
+}
+function saveStatus(){ return el("div",{class:"savestatus"},statusInner()); }
+function refreshStatus(){ document.querySelectorAll(".savestatus").forEach(n=>{ n.innerHTML=""; const c=statusInner(); if(c) n.appendChild(c); }); }
+
+/* ---------- participant flow ---------- */
+const CONTACT_EMAIL = ""; // group contact email shown on the consent screen
+let draft=lsGet(DRAFT_KEY,null), tick=null;
+const STEPS=["consent","welcome","t1","t2","t3","break1","q1","q2","q3","change","break2","about","done"];
+function saveDraft(){ if(draft) lsSet(DRAFT_KEY,draft); }
+function clearDraft(){ draft=null; try{ localStorage.removeItem(DRAFT_KEY); }catch(e){} }
+function go(step){ draft.step=step; saveDraft(); show(); }
+const reduceMotion=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function show(){
+  clearInterval(tick);
+  if(!draft){ participantMode=false; setProgress(null); return route(); }
+  participantMode = draft.step!=="done" || !!draft.remote;
+  const i=Math.max(0,STEPS.indexOf(draft.step));
+  setProgress(draft.step==="done"?null:i/(STEPS.length-1));
+  const views={consent:sConsent,welcome:sWelcome,t1:sTask1,t2:sTask2,t3:sTask3,break1:sBreak1,q1:sQ,q2:sQ,q3:sQ,change:sQ,break2:sBreak2,about:sAbout,done:sDone};
+  (views[draft.step]||sConsent)();
+  window.scrollTo(0,0);
+}
+function screen(...kids){ const app=document.getElementById("app"); app.className="wrap"; app.innerHTML=""; app.append(el("div",{class:"stack-lg fade"},...kids)); }
+function calmScreen(...kids){ screen(...kids); document.querySelector("#app>div").classList.add("calm"); }
+function svgNode(markup){ const t=document.createElement("template"); t.innerHTML=markup.trim(); return t.content.firstChild; }
+
+/* the mascot: an original little code robot with brace arms */
+function mascot(mood, size){
+  const eyes = mood==="cheer" ? '<path d="M41 58 q7 -9 14 0 M65 58 q7 -9 14 0" fill="none" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>'
+    : mood==="think" ? '<circle cx="50" cy="55" r="5.5" fill="var(--ink)"/><circle cx="74" cy="55" r="5.5" fill="var(--ink)"/><circle cx="52" cy="53" r="1.8" fill="#fff"/><circle cx="76" cy="53" r="1.8" fill="#fff"/>'
+    : '<circle cx="48" cy="58" r="6" fill="var(--ink)"/><circle cx="72" cy="58" r="6" fill="var(--ink)"/><circle cx="50" cy="56" r="2" fill="#fff"/><circle cx="74" cy="56" r="2" fill="#fff"/>';
+  const mouth = mood==="cheer" ? '<path d="M50 68 q10 13 20 0 z" fill="var(--coral)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/>'
+    : mood==="think" ? '<path d="M54 73 h12" stroke="var(--ink)" stroke-width="3.5" stroke-linecap="round"/>'
+    : '<path d="M51 70 q9 8 18 0" fill="none" stroke="var(--ink)" stroke-width="3.5" stroke-linecap="round"/>';
+  const armY = mood==="cheer" ? 44 : 80;
+  const n = svgNode('<svg class="mascot '+(reduceMotion()?"":"bob")+'" viewBox="0 0 120 120" role="img" aria-label="Pip, the study mascot" style="'+(size?"width:"+size+"px;height:"+size+"px":"")+'">'+
+    '<ellipse cx="60" cy="113" rx="32" ry="5" fill="var(--line)"/>'+
+    '<line x1="60" y1="24" x2="60" y2="11" stroke="var(--brand-dark)" stroke-width="4" stroke-linecap="round"/><circle cx="60" cy="9" r="6.5" fill="var(--sun)" stroke="var(--sun-dark)" stroke-width="2"/>'+
+    '<rect x="18" y="22" width="84" height="84" rx="30" fill="var(--brand)" stroke="var(--brand-dark)" stroke-width="3"/>'+
+    '<rect x="29" y="36" width="62" height="50" rx="20" fill="#fff"/>'+ eyes + mouth +
+    '<circle cx="38" cy="72" r="4.5" fill="var(--coral)" opacity=".45"/><circle cx="82" cy="72" r="4.5" fill="var(--coral)" opacity=".45"/>'+
+    '<text x="0" y="'+armY+'" style="font-family:var(--mono);font-size:36px;font-weight:700" fill="var(--sun-dark)">{</text>'+
+    '<text x="99" y="'+armY+'" style="font-family:var(--mono);font-size:36px;font-weight:700" fill="var(--sun-dark)">}</text></svg>');
+  return n;
+}
+function hero(mood,text){ return el("div",{class:"hero"},mascot(mood),el("div",{class:"bubble"},text)); }
+const ICON={
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg>',
+  bulb:'<svg viewBox="0 0 24 24" fill="none" stroke="var(--sun-dark)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>',
+  grip:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.8"/><circle cx="15" cy="6" r="1.8"/><circle cx="9" cy="12" r="1.8"/><circle cx="15" cy="12" r="1.8"/><circle cx="9" cy="18" r="1.8"/><circle cx="15" cy="18" r="1.8"/></svg>'
+};
+function tipCard(open){
+  const d=refCard(open); d.classList.add("tip");
+  const sum=d.querySelector("summary"); sum.textContent=""; sum.append(svgNode(ICON.bulb),"Tip card: how Counter works"); return d;
+}
+function confetti(){
+  if(reduceMotion()) return;
+  const c=el("canvas",{id:"confetti"}); document.body.appendChild(c);
+  const ctx=c.getContext("2d"), W=c.width=innerWidth, H=c.height=innerHeight;
+  const cs=getComputedStyle(document.documentElement), cols=["--brand","--sun","--go","--coral"].map(v=>cs.getPropertyValue(v).trim()||"#7c5cff");
+  const P=Array.from({length:140},()=>({x:W/2+(Math.random()-.5)*W*.3,y:H*.35,vx:(Math.random()-.5)*14,vy:-Math.random()*14-4,r:Math.random()*6+4,c:cols[Math.floor(Math.random()*4)],a:Math.random()*6,s:(Math.random()-.5)*.3}));
+  const t0=performance.now();
+  (function f(t){ const k=(t-t0)/1000; ctx.clearRect(0,0,W,H);
+    for(const p of P){ p.vy+=0.45; p.x+=p.vx; p.y+=p.vy; p.vx*=.99; p.a+=p.s; ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.a); ctx.fillStyle=p.c; ctx.globalAlpha=Math.max(0,1-k/2.6); ctx.fillRect(-p.r/2,-p.r/4,p.r,p.r/2); ctx.restore(); }
+    if(k<2.6) requestAnimationFrame(f); else c.remove(); })(t0);
+}
+
+/* consent: the information sheet, three checks and initials as the signature */
+function sConsent(){
+  paintBar();
+  const c={adult:false,course:false,agree:false,initials:""};
+  const btn=el("button",{class:"primary big",disabled:true},"I agree, let's start");
+  const upd=()=>{ btn.disabled=!(c.adult&&c.course&&c.agree&&/^[A-Za-z]{1,4}$/.test(c.initials.replace(/[.\s]/g,""))); };
+  const box=(k,text)=>el("label",{class:"check"},el("input",{type:"checkbox",onchange:e=>{ c[k]=e.target.checked; upd(); }}),el("span",{},text));
+  btn.addEventListener("click",()=>{
+    const today=new Date().toISOString().slice(0,10);
+    saveConsent({ initials:c.initials.replace(/[.\s]/g,"").toUpperCase(), date:today, form:"consent-v1" });
+    draft.consent_date=today; go("welcome");
+  });
+  const decline=()=>confirmBox("Not taking part?","That's completely fine. Nothing you've typed is kept.","Yes, stop here",()=>{ clearDraft(); participantMode=false; screen(hero("hi","No problem at all. Thanks for stopping by!"),el("p",{class:"muted"},"Please let the experimenter know.")); paintBar(); setProgress(null); });
+  screen(
+    hero("hi","Hi! I'm Pip. Before we start, here's what this study is about."),
+    el("div",{class:"card stack"},
+      el("h2",{},"About this study"),
+      el("p",{},"We are students on PSP404TC. We want to find out how using an AI coding assistant affects how well students solve short Python tasks and how well they understand their own code."),
+      el("div",{class:"stack small"},
+        el("p",{},el("b",{},"What you'll do: "),"three short Python tasks (10 minutes), a few questions about your code (about 6 minutes) and four questions about you. About 18 minutes in total."),
+        el("p",{},el("b",{},"Groups: "),"you've been placed at random in one of two groups. One group may use their own AI assistant (such as ChatGPT); the other may not use any AI or the internet."),
+        el("p",{},el("b",{},"Your data: "),"we record your time, your answers and your questionnaire. If you're in the AI group, the experimenter will ask to see your AI conversation at the end, to understand how the tool was used; it's kept without your name. Your name is never recorded; you're known only as ",el("b",{},draft.code),". Your initials below are kept apart from your answers."),
+        el("p",{},el("b",{},"It's voluntary: "),"you can stop at any time, and ask for your answers to be removed (quote ",el("b",{},draft.code),") until we start analysing the data. There's no penalty and it doesn't affect any course mark."),
+        el("p",{},el("b",{},"Risks: "),"no more than everyday risk."),
+        el("p",{},el("b",{},"Contact: "), CONTACT_EMAIL ? CONTACT_EMAIL : "ask the experimenter for the group's email."))),
+    el("div",{class:"card stack"},
+      el("h2",{},"Your consent"),
+      box("adult","I am 18 or older."), box("course","I have completed at least one Python course."), box("agree","I have read the information above and agree to take part."),
+      el("label",{class:"f"},"Type your initials to sign",
+        el("input",{type:"text",id:"c-initials",maxlength:"6",autocomplete:"off",autocapitalize:"characters",placeholder:"e.g. JK",style:"max-width:160px;font-size:1.3rem;letter-spacing:.15em;text-transform:uppercase",oninput:e=>{ c.initials=e.target.value; upd(); }})),
+      el("p",{class:"small muted"},"Date: "+new Date().toLocaleDateString())),
+    el("div",{class:"actions"},el("button",{onclick:decline},"I don't want to take part"),btn));
+}
+
+function sWelcome(){
+  paintBar();
+  const ai=draft.group==="AI";
+  let starting=false;
+  const start=()=>{
+    if(starting) return; starting=true;
+    const ov=el("div",{class:"countdown"}); document.body.appendChild(ov);
+    let n=3; const step=()=>{ if(n===0){ ov.remove(); draft.started_at=Date.now(); go("t1"); return; } ov.innerHTML=""; ov.appendChild(el("b",{},n)); n--; setTimeout(step,700); }; step();
+  };
+  screen(
+    hero("hi", ai? "You can use your own AI assistant, like ChatGPT on your phone or in another tab. Copy a task and paste it in, any way you like." : "This one's just you: no AI, search engines or websites, please."),
+    el("div",{class:"card stack"},
+      el("h1",{},"Three short tasks, 10 minutes"),
+      el("p",{},"Put some lines in order, fix a bug, then finish a function. You can move between the three tasks freely."),
+      el("p",{class:"muted"},"There's no Run button and no marking on screen, so just write what you think is right. Nobody expects perfect code.")),
+    el("div",{class:"actions"},el("span"),el("button",{class:"go big",onclick:start},"Start the 10 minutes")));
+}
+
+const TASK_STEPS=["t1","t2","t3"];
+function clockText(left){ const s=Math.max(0,Math.ceil(left)); return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0"); }
+function taskTimer(){
+  const LIMIT=600, label=el("span",{}), t=el("span",{class:"pill timer",role:"timer","aria-label":"Time left"},svgNode(ICON.clock),label);
+  const up=()=>{
+    const left=LIMIT-(Date.now()-draft.started_at)/1000;
+    label.textContent=clockText(left);
+    t.classList.toggle("low",left<=60);
+    if(left<=60 && left>0 && !draft.warned){ draft.warned=true; saveDraft(); toast("1 minute left"); }
+    if(left<=0) submitTasks(true);
+  };
+  up(); // show the real time straight away, no flash of 10:00
+  tick=setInterval(up,250); return t;
+}
+function toast(text){
+  const n=el("div",{role:"status",style:"position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:25;background:var(--coral);color:#fff;font-weight:800;padding:10px 20px;border-radius:999px;box-shadow:0 4px 0 var(--coral-dark)"},text);
+  document.body.appendChild(n); setTimeout(()=>n.remove(),3500);
+}
+function submitTasks(timedOut){
+  if(!draft || !TASK_STEPS.includes(draft.step)) return; // already submitted (e.g. time ran out while the dialog was open)
+  clearInterval(tick);
+  document.getElementById("modal-root").innerHTML="";
+  draft.time_sec=timedOut?600:Math.round(Math.min(600,(Date.now()-draft.started_at)/1000)*10)/10;
+  draft.finished=!timedOut; draft.submitted_at=Date.now();
+  draft.understanding.mod_code=draft.tasks.t3_code;
+  go("break1");
+}
+const COPY={
+  1:"Put these Python lines in the right order to make a function that returns the average of a list of numbers. The indentation is already correct. Give the order as line numbers.\n\n"+Object.entries(T1_LINES).map(([k,v])=>"["+k+"] "+v).join("\n"),
+  2:"This Python function should count how many even numbers are in a list. For example, count_even([1, 2, 3, 4]) should return 2. One line is wrong. Find and fix it.\n\n"+T2_TEMPLATE,
+  3:"Finish this Python function so it returns the word that appears most often in text. Treat upper and lower case as the same and return the word in lower case. Words are separated by spaces, with no punctuation and no ties. Use Counter from collections. Example: top_word(\"The cat saw the dog\") returns \"the\".\n\n"+T3_TEMPLATE
+};
+function copyTask(n,btn){
+  const done=()=>{ btn.textContent="Copied. Paste it into your AI"; setTimeout(()=>btn.textContent="Copy this task",2500); };
+  try{ navigator.clipboard.writeText(COPY[n]).then(done,()=>{ btn.textContent="Couldn't copy, select the text instead"; }); }catch(e){ btn.textContent="Couldn't copy, select the text instead"; }
+}
+function taskFrame(n,title,lead,body){
+  paintBar(taskTimer());
+  const copyBtn = draft.group==="AI" ? el("button",{type:"button",class:"small"},"Copy this task") : null;
+  if(copyBtn) copyBtn.addEventListener("click",()=>copyTask(n,copyBtn));
+  const back=n>1?el("button",{onclick:()=>go("t"+(n-1))},"Back"):el("span");
+  const next=n<3?el("button",{class:"primary big",onclick:()=>go("t"+(n+1))},"Next task")
+    :el("button",{class:"go big",onclick:()=>confirmBox("Submit your three tasks?","You can't change them after this, and the timer stops.","Submit",()=>submitTasks(false))},"Submit tasks");
+  screen(el("div",{class:"stack"},el("div",{class:"spread"},el("div",{class:"label"},"Task "+n+" of 3"),copyBtn),el("h1",{},title),lead?el("p",{},...[].concat(lead)):null),
+    body, el("div",{class:"actions"},back,next));
+}
+
+/* Task 1: tap tiles into place, drag to reorder */
+function sTask1(){
+  const T=draft.tasks;
+  let seq=Array.isArray(T.t1_seq)?T.t1_seq.slice():(parseOrder(T.t1_order)||[]);
+  const board=el("div",{class:"board","aria-label":"Your function, top to bottom"}), bank=el("div",{class:"bank","aria-label":"Lines to use"});
+  const persist=()=>{ T.t1_seq=seq.slice(); T.t1_order=seq.join(" "); saveDraft(); };
+  const tile=(id,placed)=>{
+    const b=el("button",{type:"button",class:"tile"+(placed?" placed":""),"data-id":id,"aria-label":(placed?"Remove line ":"Add line ")+id},
+      el("span",{class:"num"},id), el("span",{class:"txt"},T1_LINES[id]), placed?el("span",{class:"handle","aria-hidden":"true"},svgNode(ICON.grip)):null);
+    b.addEventListener("click",()=>{ if(placed) seq=seq.filter(x=>x!==id); else if(!seq.includes(id)) seq.push(id); persist(); render(id); });
+    return b;
+  };
+  function render(moved){
+    board.innerHTML=""; bank.innerHTML="";
+    for(const id of seq) board.appendChild(tile(id,true));
+    for(let k=seq.length;k<5;k++) board.appendChild(el("div",{class:"slot"}));
+    for(let id=1;id<=5;id++) bank.appendChild(seq.includes(id)? el("div",{class:"tile ghost"},el("span",{class:"num"},id)) : tile(id,false));
+    if(moved){ const m=document.querySelector('.tile[data-id="'+moved+'"]'); if(m&&!reduceMotion()){ m.classList.add("pop"); } }
+  }
+  render();
+  loadScript("https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js").then(()=>{
+    if(!window.Sortable||!board.isConnected) return;
+    Sortable.create(board,{animation:180,draggable:".tile",delayOnTouchOnly:true,delay:120,
+      onEnd:()=>{ seq=[...board.querySelectorAll(".tile")].map(t=>+t.dataset.id); persist(); render(); }});
+  }).catch(()=>{});
+  taskFrame(1,"Put the lines in order",["These lines make a function that returns the ",el("b",{},"average")," of a list of numbers. Tap them in the right order. The indentation is already right."],
+    el("div",{class:"stack"},
+      el("div",{class:"spread"},el("div",{class:"label"},"Your function"),el("button",{class:"small",onclick:()=>{ seq=[]; persist(); render(); }},"Clear")),
+      board,
+      el("p",{class:"small muted"},"Tap a line in your function to send it back. Drag lines to swap them around."),
+      el("div",{class:"label"},"Lines"), bank));
+}
+
+/* Task 2: tap a line to edit it */
+function sTask2(){
+  const T=draft.tasks, orig=T2_TEMPLATE.replace(/\n$/,"").split("\n");
+  let lines=(T.t2_code||T2_TEMPLATE).replace(/\n$/,"").split("\n"), editing=-1;
+  const list=el("div",{class:"lines"});
+  const commit=(i,v)=>{ lines[i]=v; T.t2_code=lines.join("\n")+"\n"; saveDraft(); };
+  function render(focus){
+    list.innerHTML="";
+    lines.forEach((ln,i)=>{
+      const changed=ln!==orig[i];
+      if(i===editing){
+        const inp=el("input",{type:"text",value:ln,spellcheck:"false",autocapitalize:"off",autocomplete:"off","aria-label":"Edit line "+(i+1)});
+        inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); commit(i,inp.value); editing=-1; render(); } else if(e.key==="Escape"){ editing=-1; render(); } });
+        inp.addEventListener("blur",()=>{ if(editing===i){ commit(i,inp.value); editing=-1; render(); } });
+        list.appendChild(el("div",{class:"cline editing"+(changed?" edited":"")},el("span",{class:"ln"},i+1),inp));
+        if(focus) setTimeout(()=>{ inp.focus(); const p=inp.value.length; inp.setSelectionRange(p,p); },0);
+      } else {
+        const b=el("button",{type:"button",class:"cline"+(changed?" edited":""),"aria-label":"Line "+(i+1)+(changed?", edited":"")+". Tap to edit."},el("span",{class:"ln"},i+1),el("span",{class:"src"},ln||" "));
+        b.addEventListener("click",()=>{ editing=i; render(true); });
+        list.appendChild(b);
+      }
+    });
+  }
+  render();
+  taskFrame(2,"Find and fix the bug",["This function should count the ",el("b",{},"even")," numbers in a list. For example, ",el("code",{},"count_even([1, 2, 3, 4])")," should return 2. One line is wrong."],
+    el("div",{class:"stack"}, list,
+      el("div",{class:"spread"},el("p",{class:"small muted"},"Tap a line to edit it, then press Enter. Edited lines turn yellow."),
+        el("button",{class:"small",onclick:()=>{ lines=orig.slice(); editing=-1; T.t2_code=T2_TEMPLATE; saveDraft(); render(); }},"Undo my changes"))));
+}
+
+/* Task 3: write code with Counter */
+function editorWithIndent(id,value,onInput){
+  const box=codeBox(id,value,onInput);
+  const ins=s=>{ const a=box.selectionStart,b=box.selectionEnd; box.value=box.value.slice(0,a)+s+box.value.slice(b); box.selectionStart=box.selectionEnd=a+s.length; box.focus(); onInput(box.value); };
+  return el("div",{class:"stack"},box,el("div",{class:"editorbar"},
+    el("button",{type:"button",class:"small",onclick:()=>ins("    ")},"Indent ⇥"),
+    el("button",{type:"button",class:"small",onclick:()=>ins("\n    ")},"New indented line")));
+}
+function sTask3(){
+  const T=draft.tasks;
+  taskFrame(3,"Finish the function",["Finish ",el("code",{},"top_word(text)")," so it returns the word that appears most often. Treat upper and lower case as the same and return the word in lower case. Words are separated by spaces, with no punctuation and no ties."],
+    el("div",{class:"stack"},
+      el("div",{class:"hint"},"Example: ",el("code",{},'top_word("The cat saw the dog")')," returns ",el("code",{},'"the"'),". Use ",el("b",{},"Counter"),": the tip card shows how."),
+      tipCard(true),
+      editorWithIndent("t3",T.t3_code,v=>{ T.t3_code=v; saveDraft(); })));
+}
+
+function sBreak1(){
+  paintBar();
+  calmScreen(hero("hi", draft.finished? "That's the tasks done. Thank you." : "That's the 10 minutes. Your answers are saved."),
+    el("div",{class:"card stack"},el("h1",{},"Now, just you"),
+      el("p",{},"The next four questions are about the code you just wrote. They help us see how you understand it on your own, so please close any AI app or tab now and keep it closed until the end."),
+      el("p",{class:"muted"},"There's no timer here. Take your time, answer in your own words, and it's completely fine to say you're not sure.")),
+    el("div",{class:"actions"},el("span"),el("button",{class:"primary big",onclick:()=>{ draft.u_started_at=Date.now(); go("q1"); }},"I'm ready")));
+}
+
+function sQ(){
+  const k=draft.step, U=draft.understanding, save=()=>saveDraft();
+  paintBar();
+  const order=["q1","q2","q3","change"], i=order.indexOf(k);
+  const lab=el("div",{class:"label"},"Question "+(i+1)+" of 4 · on your own, no AI");
+  let title, body;
+  if(k==="q1"){
+    title="What was wrong with count_even?";
+    body=[el("p",{},"In your own words, what was the mistake in the original function, and why does your fix work?"),
+      el("div",{class:"label"},"Your fixed version"),pre(draft.tasks.t2_code||""),
+      el("label",{class:"f",for:"q1"},"Your answer"),textBox("q1",U.q1,v=>{ U.q1=v; save(); })];
+  } else if(k==="q2"){
+    title="Walk through your Task 3 code";
+    body=[el("p",{},"Imagine your function gets the text ",el("code",{},'"Dog cat dog"'),". What does it count, and what does it give back? Which line picks the answer?"),
+      el("div",{class:"label"},"Your Task 3 code"),pre(draft.tasks.t3_code||""),
+      el("label",{class:"f",for:"q2"},"Your answer"),textBox("q2",U.q2,v=>{ U.q2=v; save(); }),tipCard(false)];
+  } else if(k==="q3"){
+    title="What does this print?";
+    body=[el("p",{},"This small piece of code is the same for everyone. What would the two print lines show? Your best guess is fine."),
+      pre('from collections import Counter\nc = Counter("banana")\nprint(c["a"], c["x"])\nprint(c.most_common(1)[0][0])'),
+      el("label",{class:"f"},"First line prints",el("input",{type:"text",id:"q3a",value:U.q3_line1||"",autocomplete:"off",style:"font-family:var(--mono)",oninput:e=>{ U.q3_line1=e.target.value; save(); }})),
+      el("label",{class:"f"},"Second line prints",el("input",{type:"text",id:"q3b",value:U.q3_line2||"",autocomplete:"off",style:"font-family:var(--mono)",oninput:e=>{ U.q3_line2=e.target.value; save(); }})),
+      tipCard(false)];
+  } else {
+    title="Change your code";
+    body=[el("p",{},"Last one. Change your Task 3 function so it gives back a ",el("b",{},"list of the two most common words"),", most common first. Your code is already in the box, so you only need to change it."),
+      editorWithIndent("mod",U.mod_code,v=>{ U.mod_code=v; save(); }),tipCard(false)];
+  }
+  const back=i>0?el("button",{onclick:()=>go(order[i-1])},"Back"):el("span");
+  const next=el("button",{class:"primary big",onclick:()=>{ if(i<3) go(order[i+1]); else { draft.u_time_sec=Math.round((Date.now()-(draft.u_started_at||Date.now()))/1000); go("break2"); } }},i<3?"Next":"Finish this part");
+  calmScreen(el("div",{class:"stack"},lab,el("h1",{},title)), el("div",{class:"card stack"},...body), el("div",{class:"actions"},back,next));
+}
+
+function sBreak2(){
+  paintBar();
+  screen(hero("cheer","Almost there!"),
+    el("div",{class:"card stack"},el("h1",{},"Last bit: four questions about you"),el("p",{class:"muted"},"Tap your answers. It takes about a minute.")),
+    el("div",{class:"actions"},el("span"),el("button",{class:"primary big",onclick:()=>go("about")},"Continue")));
+}
+
+function sAbout(){
+  paintBar();
+  const q=draft.questionnaire, save=()=>saveDraft();
+  const err=el("p",{class:"small",style:"color:var(--coral-dark);font-weight:700",role:"alert"});
+  const finish=async()=>{
+    if(q.python_months===undefined||q.python_months===""||isNaN(+q.python_months)) return err.textContent="Please enter roughly how many months you've used Python.";
+    if(!q.python_self_rating||!q.ai_tool_use||!q.used_counter_before) return err.textContent="Please answer questions 2, 3 and 4.";
+    const s={ id:draft.id, code:draft.code, group:draft.group, level:draft.level, pilot:draft.pilot, model:draft.model||"", created_at:draft.created_at, version:"kit-v2",
+      consent:true, consent_date:draft.consent_date||null,
+      started_at:draft.started_at, submitted_at:draft.submitted_at, time_sec:draft.time_sec, finished:draft.finished, u_time_sec:draft.u_time_sec,
+      tasks:{t1_order:draft.tasks.t1_order||"",t2_code:draft.tasks.t2_code,t3_code:draft.tasks.t3_code}, understanding:draft.understanding,
+      questionnaire:{...q,python_months:+q.python_months}, marks:{}, ai:{}, notes:"", excluded:false };
+    btn.disabled=true; btn.textContent="Saving…";
+    s.q3=scoreQ3(s.understanding?.q3_line1,s.understanding?.q3_line2);
+    try{
+      const r=await Promise.race([gradeSession(s),new Promise((_,rej)=>setTimeout(()=>rej(new Error("slow")),20000))]);
+      const sum=a=>a.reduce((x,y)=>x+y,0); s.scores={t1:sum(r.t1),t2:sum(r.t2),t3:sum(r.t3),mod:sum(r.mod)};
+    }catch(e){ /* the Results page checks the code later */ }
+    await saveSession(s); draft.saved_id=s.id;
+    const done=lsGet(DONE_KEY,[]); if(!done.includes(draft.code)){ done.push(draft.code); lsSet(DONE_KEY,done); }
+    go("done");
+  };
+  const scale=key=>choices([1,2,3,4,5].map(v=>[String(v),String(v)]),q[key]||"",v=>{ q[key]=v; save(); },"scale");
+  const btn=el("button",{class:"go big",onclick:()=>finish()},"Finish");
+  loadSkulpt().catch(()=>{});
+  screen(el("div",{class:"stack"},el("div",{class:"label"},"About you"),el("h1",{},"Four quick questions")),
+    el("div",{class:"card stack-lg"},
+      el("label",{class:"f"},"1. Roughly how many months have you been using Python?",
+        el("input",{type:"number",id:"q-months",min:"0",inputmode:"numeric",value:q.python_months??"",style:"max-width:140px",oninput:e=>{ q.python_months=e.target.value; save(); }})),
+      el("div",{class:"stack"},el("span",{class:"f"},"2. How good are you at Python?"),el("span",{class:"small muted"},"1 = beginner, 5 = confident"),scale("python_self_rating")),
+      el("div",{class:"stack"},el("span",{class:"f"},"3. How often do you use AI tools like ChatGPT when you code?"),el("span",{class:"small muted"},"1 = never, 5 = almost always"),scale("ai_tool_use")),
+      el("div",{class:"stack"},el("span",{class:"f"},"4. Had you used Python's Counter before today?"),
+        choices([["yes","Yes"],["no","No"],["unsure","Not sure"]],q.used_counter_before||"",v=>{ q.used_counter_before=v; save(); },"scale")),
+      el("label",{class:"f"},"Anything that made today hard? (optional)",textBox("q-hard",q.hard,v=>{ q.hard=v; save(); }))),
+    err, el("div",{class:"actions"},el("button",{onclick:()=>go("break2")},"Back"),btn));
+}
+
+function uploadLine(){
+  const n=el("div",{class:"hint small",role:"status"});
+  const paint=()=>{ const pending=store.outbox.some(x=>x.action==="submit"&&x.session&&x.session.id===(draft&&draft.saved_id));
+    n.className="hint small "+(pending?"warn":"ok");
+    n.textContent=!API? "Saved on this device." : pending? (store.err? "Not sent yet: the connection dropped. Please keep this page open; it will try again." : "Sending your answers…") : "Your answers have been sent. You can close this page."; };
+  paint(); uploadListeners.add(paint); return n;
+}
+function sDone(){
+  paintBar(); setProgress(null);
+  if(!draft.done_shown){ draft.done_shown=true; saveDraft(); setTimeout(confetti,150); }
+  flush();
+  if(draft.remote){
+    screen(el("div",{class:"stack center"},mascot("cheer",150),el("h1",{},"All done. Thank you!"),
+      el("p",{class:"small muted"},"Your participant code is ",el("b",{},draft.code),". Quote it if you'd like your answers removed later.")), uploadLine());
+    return;
+  }
+  screen(el("div",{class:"stack center"},mascot("cheer",150),el("h1",{},"All done. Thank you!"),
+      el("p",{class:"muted"},"Please let the experimenter know you've finished."),
+      el("p",{class:"small muted"},"Your participant code is ",el("b",{},draft.code),". Quote it if you'd like your answers removed later.")),
+    uploadLine(),
+    el("div",{class:"card stack"},
+      el("div",{class:"label"},"For the experimenter"),
+      el("p",{},"Session "+draft.code+" is saved. Debrief the participant, then:"),
+      el("div",{class:"row"},
+        el("button",{class:"primary",onclick:()=>{ clearDraft(); location.hash="#setup"; show(); }},"Start next session"),
+        el("button",{onclick:()=>{ clearDraft(); location.hash="#results"; show(); }},"Go to results"))));
+}
+
+/* ---------- run session (experimenter) ---------- */
+function nextCode(){ const n=allSessions().map(s=>s.code).concat(lsGet(ISSUED_KEY,[])).filter(c=>/^P\d+$/.test(c)).map(c=>+c.slice(1)); return "P"+String(n.length?Math.max(...n)+1:1).padStart(2,"0"); }
+function b64(o){ return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
+function unb64(t){ t=t.replace(/-/g,"+").replace(/_/g,"/"); while(t.length%4) t+="="; return JSON.parse(decodeURIComponent(escape(atob(t)))); }
+function participantLink(st){ return location.origin+location.pathname+"?join="+b64({c:st.code,g:st.group==="AI"?"a":"c",l:st.level,p:st.pilot?1:0,m:st.model||""}); }
+function joinFromLink(){
+  const t=new URLSearchParams(location.search).get("join"); if(!t) return false;
+  let j; try{ j=unb64(t); }catch(e){ return false; }
+  if(!j||!/^[A-Za-z0-9_-]{1,20}$/.test(j.c||"")) return false;
+  if(draft&&draft.code===j.c){ show(); return true; }
+  if(lsGet(DONE_KEY,[]).includes(j.c)){
+    participantMode=true; paintBar(); setProgress(null);
+    screen(el("div",{class:"stack center"},mascot("hi",130),el("h1",{},"You've already taken part"),el("p",{class:"muted"},"Thank you! There's nothing more to do.")));
+    return true;
+  }
+  const now=Date.now();
+  draft={ id:j.c+"_"+now.toString(36), code:j.c, group:j.g==="a"?"AI":"Control", level:j.l==="2+"?"2+":"1", pilot:!!j.p, model:j.m||"", remote:true, created_at:now, step:"consent",
+    tasks:{t1_order:"",t1_seq:[],t2_code:T2_TEMPLATE,t3_code:T3_TEMPLATE}, understanding:{}, questionnaire:{} };
+  saveDraft(); show(); return true;
+}
+function vSetup(){
+  const app=document.getElementById("app"); app.className="wrap"; app.innerHTML="";
+  const st={code:nextCode(),group:"",level:"",ok:false,pilot:false,model:""};
+  const err=el("p",{class:"small",style:"color:var(--bad)",role:"alert"});
+  const modelRow=el("label",{class:"f",hidden:true},"AI app they'll use (optional, e.g. ChatGPT app)",el("input",{type:"text",id:"s-model",placeholder:"e.g. ChatGPT app",style:"max-width:260px",oninput:e=>st.model=e.target.value.trim()}));
+  const check=()=>{
+    if(!/^[A-Za-z0-9_-]{1,20}$/.test(st.code)) return err.textContent="Use a short code like P07.";
+    if(!st.pilot && (allSessions().some(s=>s.code===st.code&&!s.pilot) || lsGet(ISSUED_KEY,[]).includes(st.code))) return err.textContent=st.code+" is already used.";
+    if(!st.group) return err.textContent="Choose the group.";
+    if(!st.level) return err.textContent="Choose the number of Python courses.";
+    err.textContent=""; return true;
+  };
+  const makeLink=()=>{
+    if(check()!==true) return;
+    const url=participantLink(st), issued=lsGet(ISSUED_KEY,[]); if(!issued.includes(st.code)){ issued.push(st.code); lsSet(ISSUED_KEY,issued); }
+    const box=el("textarea",{readonly:true,style:"min-height:90px;font-family:var(--mono);font-size:13px"}); box.value=url;
+    const copy=el("button",{class:"primary",onclick:()=>{ box.select(); try{ navigator.clipboard.writeText(url).then(()=>copy.textContent="Copied",()=>{}); }catch(e){} }},"Copy link");
+    const root=document.getElementById("modal-root");
+    root.innerHTML=""; root.appendChild(el("div",{class:"modal",role:"dialog","aria-modal":"true"},el("div",{class:"card stack fade"},
+      el("div",{class:"label"},"Link for "+st.code+" · "+(st.group==="AI"?"AI group":"Control group")+" · "+(st.level==="1"?"one course":"two or more courses")),
+      el("h2",{},"Send this to "+st.code),
+      el("p",{class:"small muted"},"Only send it to this one person. When they finish, their answers appear in the Google Sheet and on the Results page."),
+      box, el("div",{class:"row",style:"justify-content:flex-end"},el("button",{onclick:()=>{ root.innerHTML=""; vSetup(); }},"Done"),copy))));
+  };
+  const start=()=>{
+    if(!/^[A-Za-z0-9_-]{1,20}$/.test(st.code)) return err.textContent="Use a short code like P07.";
+    if(!st.pilot && allSessions().some(s=>s.code===st.code&&!s.pilot)) return err.textContent=st.code+" is already used.";
+    if(!st.group) return err.textContent="Choose the group.";
+    if(!st.level) return err.textContent="Choose the number of Python courses.";
+    const now=Date.now();
+    draft={ id:st.code+"_"+now.toString(36), code:st.code, group:st.group, level:st.level, pilot:st.pilot, model:st.group==="AI"?st.model:"", created_at:now, step:"consent",
+      tasks:{t1_order:"",t1_seq:[],t2_code:T2_TEMPLATE,t3_code:T3_TEMPLATE}, understanding:{}, questionnaire:{} };
+    saveDraft(); show();
+  };
+  app.append(el("div",{class:"stack-lg fade"},
+    el("div",{class:"stack"},el("h1",{},"Run a session"),el("p",{class:"muted"},"Fill this in, then either hand this device to the participant or send them their own link.")),
+    draft&&draft.step!=="done"? el("div",{class:"hint warn spread"},el("span",{},"Session "+draft.code+" wasn't finished."),
+      el("div",{class:"row"},el("button",{class:"primary",onclick:show},"Continue it"),el("button",{class:"danger",onclick:()=>confirmBox("Delete "+draft.code+"'s answers?","The unfinished session is removed from this device.","Delete",()=>{ clearDraft(); vSetup(); },true)},"Delete"))) : null,
+    el("div",{class:"card stack-lg"},
+      el("label",{class:"f"},"Participant code",el("input",{type:"text",id:"s-code",value:st.code,style:"max-width:180px;font-family:var(--mono)",oninput:e=>st.code=e.target.value.trim()})),
+      el("div",{class:"stack"},el("span",{class:"f"},"Group"),el("span",{class:"small muted"},"Take the next entry from your randomisation list."),
+        choices([["AI","AI group","Uses their own AI"],["Control","Control group","No AI"]],"",v=>{ st.group=v; modelRow.hidden=v!=="AI"; })),
+      modelRow,
+      el("div",{class:"stack"},el("span",{class:"f"},"Python courses completed"),
+        choices([["1","One"],["2+","Two or more"]],"",v=>st.level=v)),
+      el("p",{class:"small muted"},"The participant reads the information sheet and signs with their initials on the first screen."),
+      el("label",{class:"check"},el("input",{type:"checkbox",id:"s-pilot",onchange:e=>st.pilot=e.target.checked}),
+        el("span",{class:"muted"},"Practice run (not counted in the results)"))),
+    err, el("div",{class:"row"},el("button",{class:"primary big",onclick:start},"Start on this device"),el("button",{class:"big",onclick:makeLink},"Make a link to send")),
+    el("p",{class:"small muted"},"Make a link to send gives this participant their own link with their code and group built in. They open it on their own phone or laptop and go straight to the consent screen."),
+    saveStatus()));
+}
+
+/* ---------- results (experimenter) ---------- */
+const grades=new Map(); let grading="idle";
+function hash(str){ let h=5381; for(let i=0;i<str.length;i++) h=((h<<5)+h+str.charCodeAt(i))|0; return h; }
+const gkey=s=>hash(JSON.stringify([s.tasks,s.understanding&&s.understanding.mod_code]));
+function d(s){
+  const g=grades.get(s.id), sum=a=>a?a.reduce((x,y)=>x+y,0):null, m=s.marks||{};
+  const q1=m.q1==null?null:+m.q1, q2=m.q2==null?null:+m.q2, q3=scoreQ3(s.understanding?.q3_line1,s.understanding?.q3_line2);
+  const sc=s.scores;
+  const t1=sc?sc.t1:g?sum(g.t1):null,t2=sc?sc.t2:g?sum(g.t2):null,t3=sc?sc.t3:g?sum(g.t3):null,mod=sc?sc.mod:g?sum(g.mod):null;
+  return { g,t1,t2,t3,mod,q1,q2,q3, tests:t1!=null&&t2!=null&&t3!=null?t1+t2+t3:null, modFull:mod==null?null:+(mod===4), under:(mod!=null&&q1!=null&&q2!=null)?q1+q2+q3+mod:null, needs:q1==null||q2==null };
+}
+async function gradeAll(){
+  if(grading==="running") return; grading="running";
+  try{ await loadSkulpt(); for(const s of allSessions()){ if(grades.has(s.id)&&grades.get(s.id).k===gkey(s)) continue; const r=await gradeSession(s); r.k=gkey(s); grades.set(s.id,r);
+      if(!s.scores){ const sum=a=>a.reduce((x,y)=>x+y,0); s.scores={t1:sum(r.t1),t2:sum(r.t2),t3:sum(r.t3),mod:sum(r.mod)}; s.q3=scoreQ3(s.understanding?.q3_line1,s.understanding?.q3_line2); if(store.remote.has(s.id)) pushUpdate(s); } } grading="done"; }
+  catch(e){ grading="error"; }
+  dataChanged(true);
+}
+function needGrading(){ return allSessions().some(s=>!grades.has(s.id)||grades.get(s.id).k!==gkey(s)); }
+
+function vResults(){
+  const app=document.getElementById("app"); app.className="wrap wide"; app.innerHTML="";
+  const all=allSessions(), counted=all.filter(s=>!s.pilot&&!s.excluded);
+  const nAI=counted.filter(s=>s.group==="AI").length, nC=counted.length-nAI;
+  const live=all.filter(s=>!s.pilot&&!s.excluded);
+  const toMark=live.filter(s=>d(s).needs).length;
+  const unmarked=live.filter(s=>{ const m=s.marks||{}; return ["q1A","q1B","q2A","q2B"].some(k=>m[k]==null); }).length;
+  const disagreements=disagreeList().length;
+  const fileIn=el("input",{type:"file",accept:".json,application/json",hidden:true,onchange:e=>importFile(e.target.files[0])});
+  app.append(el("div",{class:"stack-lg fade"},
+    keyCard(),
+    el("div",{class:"spread"},el("h1",{},"Results"),
+      el("div",{class:"row"},el("button",{onclick:downloadCSV},"Download spreadsheet (CSV)"))),
+    el("div",{class:"stats"},
+      el("div",{},el("span",{class:"label"},"AI group"),el("b",{},nAI),el("span",{class:"small muted"},"participants")),
+      el("div",{},el("span",{class:"label"},"Control group"),el("b",{},nC),el("span",{class:"small muted"},"participants")),
+      el("div",{},el("span",{class:"label"},"Still to mark"),el("b",{},toMark),el("span",{class:"small muted"},"sessions without a final Q1 and Q2 score"))),
+    grading==="running"? el("p",{class:"small muted"},"Checking participants' code…") : grading==="error"? el("div",{class:"hint warn small"},"The code checker didn't load. Check the internet connection and reload the page.") : null,
+    all.length? el("div",{class:"card stack"},
+      el("h2",{},unmarked? "Next: mark the written answers" : disagreements? "Next: settle "+disagreements+" disagreement"+(disagreements===1?"":"s") : "All answers are marked"),
+      el("p",{class:"muted small"},"Two of you mark Q1 and Q2 separately, one answer at a time. The group is hidden so marking stays fair. Where your marks differ, you agree a final score together."),
+      el("div",{class:"row"},el("button",{class:unmarked?"primary":"",onclick:()=>startMarking("A")},"Mark as marker 1"),el("button",{class:unmarked?"primary":"",onclick:()=>startMarking("B")},"Mark as marker 2"),
+        disagreements? el("button",{class:unmarked?"":"primary",onclick:startSettling},"Settle disagreements ("+disagreements+")") : null)) : null,
+    all.length? el("div",{class:"stack"},el("h2",{},"Sessions"),el("div",{class:"list"},all.map(sessionItem)))
+      : el("div",{class:"card stack"},el("h2",{},"No sessions yet"),el("p",{class:"muted"},"Finished sessions appear here with their scores, from every device and every participant link. Start one from Run session.")),
+    saveStatus(), el("details",{class:"ref"},el("summary",{},"Backup and import"),
+      el("div",{},saveStatus(),
+        el("p",{class:"small muted"},"Download backup saves every session as one file. Import uploads sessions from a backup file to the Google Sheet (for example, ones made in the earlier Claude version of this page)."),
+        el("div",{class:"row"},el("button",{onclick:downloadJSON},"Download backup"),el("button",{onclick:()=>fileIn.click()},"Import backup"),fileIn),
+        el("p",{class:"small muted"},allConsents().length+" consent record"+(allConsents().length===1?"":"s")+" (initials and date only, not linked to answers)."),
+        el("div",{},el("button",{onclick:()=>offer("consent-records.csv",["initials,date,form",...allConsents().map(c=>[c.initials,c.date,c.form].join(","))].join("\n"))},"Download consent records"))))
+  ));
+  if(grading!=="running"&&needGrading()) gradeAll();
+}
+function ticks(arr){ return arr? el("span",{class:"ticks"},arr.map((v,i)=>el("span",{class:"tick "+(v?"p":"f")},(v?"✓":"✗")+(i+1)))) : el("span",{class:"small muted"},"checking…"); }
+const openItems=new Set();
+function sessionItem(s){
+  const x=d(s), ai=s.group==="AI"; s.ai=s.ai||{};
+  const status=s.pilot?el("span",{class:"chip"},"Practice"):s.excluded?el("span",{class:"chip bad"},"Excluded"):x.needs?el("span",{class:"chip warn"},"To mark"):el("span",{class:"chip ok"},"Done");
+  const det=el("details",{class:"item",open:openItems.has(s.id)});
+  det.addEventListener("toggle",()=>{ det.open?openItems.add(s.id):openItems.delete(s.id); });
+  det.append(el("summary",{},el("b",{style:"font-family:var(--mono)"},s.code),el("span",{class:"chip "+(ai?"ai":"ctrl")},ai?"AI":"Control"),
+    el("span",{class:"nums"},(s.time_sec!=null?Math.round(s.time_sec)+" s":"—")+" · tests "+(x.tests??"…")+"/10 · understanding "+(x.under??"—")+"/10"),status));
+  const q=s.questionnaire||{};
+  det.append(el("div",{class:"body"},
+    el("div",{class:"stats"},
+      el("div",{},el("span",{class:"label"},"Time"),el("b",{},s.time_sec!=null?Math.round(s.time_sec)+" s":"—"),el("span",{class:"small muted"},s.finished?"submitted":"ran out of time")),
+      el("div",{},el("span",{class:"label"},"Tests passed"),el("b",{},(x.tests??"…")+" / 10")),
+      el("div",{},el("span",{class:"label"},"Understanding"),el("b",{},(x.under??"—")+" / 10"),el("span",{class:"small muted"},"Q1 "+(x.q1??"?")+" · Q2 "+(x.q2??"?")+" · Q3 "+x.q3+" · change "+(x.mod??"…")))),
+    el("div",{class:"stack"},
+      el("div",{class:"row"},el("span",{class:"label"},"Task 1"),el("code",{},s.tasks?.t1_order||"(blank)"),ticks(x.g?.t1)),
+      el("div",{class:"row"},el("span",{class:"label"},"Task 2"),ticks(x.g?.t2)), pre(s.tasks?.t2_code||""),
+      el("div",{class:"row"},el("span",{class:"label"},"Task 3"),ticks(x.g?.t3)), pre(s.tasks?.t3_code||""),
+      el("div",{class:"row"},el("span",{class:"label"},"Changed code"),ticks(x.g?.mod)), pre(s.understanding?.mod_code||"")),
+    el("p",{class:"small"},el("b",{},"Q3 answers: "),(s.understanding?.q3_line1||"(blank)")+"  /  "+(s.understanding?.q3_line2||"(blank)")+"  → "+x.q3+" of 2 (scored automatically)"),
+    el("p",{class:"small muted"},"Python "+(q.python_months??"—")+" months · skill "+(q.python_self_rating??"—")+"/5 · AI use "+(q.ai_tool_use??"—")+"/5 · used Counter before: "+(q.used_counter_before??"—")+(q.hard?" · “"+q.hard+"”":"")),
+    ai? aiCoding(s) : null,
+    el("label",{class:"f"},"Notes",textBox("notes-"+s.id,s.notes,v=>{ s.notes=v; saveSoon(s); })),
+    el("div",{class:"row"},
+      el("button",{onclick:()=>{ s.excluded=!s.excluded; saveSoon(s); redraw(); }},s.excluded?"Include in results":"Exclude from results"),
+      el("button",{class:"danger",onclick:()=>confirmBox("Delete "+s.code+"?","Only for a participant who asked for their data to be removed. This can't be undone.","Delete",async()=>{ await removeSession(s.id); redraw(); },true)},"Delete"))));
+  return det;
+}
+
+/* kit Section 13: two coders label each AI session from its saved chat */
+const AI_CATS=[["Delegation","Handed it over","Pasted the task, used the answer"],["Engaged","Engaged","Asked how or why, or for explanations"],["Minimal","Minimal","One prompt or none"]];
+function aiCoding(s){
+  const a=s.ai, agreeWrap=el("div",{class:"stack"});
+  const paintAgree=()=>{ agreeWrap.innerHTML="";
+    if(a.catA&&a.catB&&a.catA!==a.catB){ agreeWrap.append(el("span",{class:"f"},"Coders disagree: choose the agreed category"),choices(AI_CATS,a.category||"",v=>{ a.category=v; saveSoon(s); })); }
+    else if(a.catA&&a.catA===a.catB) agreeWrap.append(el("p",{class:"small muted"},"Both coders chose "+a.catA+", so that's the agreed category."));
+  };
+  const pick=k=>v=>{ a[k]=v; if(a.catA&&a.catA===a.catB) a.category=a.catA; else if(a.catA&&a.catB) a.category=null; saveSoon(s); paintAgree(); };
+  paintAgree();
+  return el("div",{class:"card stack",style:"padding:16px"},
+    el("div",{class:"spread"},el("h3",{},"How they used AI"),el("span",{class:"small muted"},"AI app: "+(s.model||"not recorded"))),
+    el("p",{class:"small muted"},"Use the conversation screenshots saved under "+s.code+". Code them before looking at the understanding score."),
+    el("label",{class:"f"},"Prompts sent",el("input",{type:"number",min:"0",value:a.prompts??"",style:"max-width:120px",oninput:e=>{ a.prompts=e.target.value===""?null:+e.target.value; saveSoon(s); }})),
+    el("span",{class:"f"},"Coder 1"),choices(AI_CATS,a.catA||"",pick("catA")),
+    el("span",{class:"f"},"Coder 2"),choices(AI_CATS,a.catB||"",pick("catB")),
+    agreeWrap);
+}
+
+/* guided marking */
+const GUIDE={
+  q1:{ title:"Q1 · What was wrong with count_even?", show:s=>s.tasks?.t2_code, label:"Their fixed version",
+    levels:[["2","2","Says it counted odd numbers (remainder 1) and that even numbers have remainder 0"],["1","1","Says what changed, or that it counted the wrong numbers, but not why"],["0","0","Wrong or no answer"]] },
+  q2:{ title:"Q2 · Walk through \"Dog cat dog\"", show:s=>s.tasks?.t3_code, label:"Their Task 3 code",
+    levels:[["2","2","dog = 2, cat = 1, AND returns \"dog\", pointing to the line that picks it"],["1","1","Gets one of those two parts right"],["0","0","Neither part, or no answer"]] }
+};
+let inFlow=false;
+function startMarking(rater){
+  inFlow=true;
+  const queue=[];
+  for(const s of allSessions()) if(!s.pilot&&!s.excluded) for(const q of ["q1","q2"]) if((s.marks||{})[q+rater]==null) queue.push([s.id,q]);
+  // shuffle so marking order doesn't follow session order
+  for(let i=queue.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [queue[i],queue[j]]=[queue[j],queue[i]]; }
+  markStep(rater,queue,0);
+}
+function markStep(rater,queue,i){
+  const app=document.getElementById("app"); app.className="wrap"; app.innerHTML="";
+  if(i>=queue.length){
+    app.append(el("div",{class:"stack-lg fade"},el("h1",{},"Marking finished"),el("p",{class:"muted"},"You've marked every answer you hadn't marked yet as marker "+(rater==="A"?"1":"2")+"."),el("div",{},el("button",{class:"primary",onclick:redraw},"Back to results"))));
+    return;
+  }
+  const [id,q]=queue[i], s=allSessions().find(x=>x.id===id); if(!s) return markStep(rater,queue,i+1);
+  const G=GUIDE[q];
+  app.append(el("div",{class:"stack-lg fade"},
+    el("div",{class:"spread"},el("div",{class:"label"},"Marker "+(rater==="A"?"1":"2")+" · answer "+(i+1)+" of "+queue.length),el("button",{class:"link",onclick:redraw},"Stop and go back")),
+    el("h1",{},G.title),
+    el("div",{class:"card stack"},el("div",{class:"label"},G.label),pre(G.show(s)||""),el("div",{class:"label"},"Their answer"),
+      el("p",{style:"white-space:pre-wrap;font-size:1.05rem"},(s.understanding||{})[q]||"(no answer)")),
+    el("div",{class:"stack"},el("span",{class:"f"},"Score"),
+      el("div",{class:"stack"},G.levels.map(([v,t,sub])=>el("button",{class:"choice",style:"flex-direction:row;gap:14px;align-items:center",onclick:()=>{
+        s.marks=s.marks||{}; s.marks[q+rater]=+v; const a=s.marks[q+"A"], b=s.marks[q+"B"]; if(a!=null&&a===b) s.marks[q]=a; else if(a!=null&&b!=null) s.marks[q]=null;
+        saveSoon(s); markStep(rater,queue,i+1); }},el("b",{style:"font-size:1.3rem;min-width:22px"},t),el("span",{},sub))))),
+    el("div",{},el("button",{onclick:()=>markStep(rater,queue,i+1)},"Skip for now"))));
+  window.scrollTo(0,0);
+}
+function disagreeList(){ const out=[]; for(const s of allSessions()){ const m=s.marks||{}; for(const q of ["q1","q2"]) if(m[q+"A"]!=null&&m[q+"B"]!=null&&m[q+"A"]!==m[q+"B"]&&m[q]==null) out.push([s.id,q]); } return out; }
+function startSettling(){ inFlow=true; settleStep(disagreeList(),0); }
+function settleStep(list,i){
+  const app=document.getElementById("app"); app.className="wrap"; app.innerHTML="";
+  if(i>=list.length){ app.append(el("div",{class:"stack-lg fade"},el("h1",{},"All settled"),el("div",{},el("button",{class:"primary",onclick:redraw},"Back to results")))); return; }
+  const [id,q]=list[i], s=allSessions().find(x=>x.id===id), G=GUIDE[q], m=s.marks;
+  app.append(el("div",{class:"stack-lg fade"},
+    el("div",{class:"spread"},el("div",{class:"label"},"Disagreement "+(i+1)+" of "+list.length),el("button",{class:"link",onclick:redraw},"Stop and go back")),
+    el("h1",{},G.title),
+    el("div",{class:"card stack"},el("div",{class:"label"},G.label),pre(G.show(s)||""),el("div",{class:"label"},"Their answer"),el("p",{style:"white-space:pre-wrap"},(s.understanding||{})[q]||"(no answer)")),
+    el("p",{},"Marker 1 gave ",el("b",{},m[q+"A"]),", marker 2 gave ",el("b",{},m[q+"B"]),". Talk it through and choose the final score."),
+    el("div",{class:"stack"},G.levels.map(([v,t,sub])=>el("button",{class:"choice",style:"flex-direction:row;gap:14px;align-items:center",onclick:()=>{ s.marks[q]=+v; saveSoon(s); settleStep(list,i+1); }},el("b",{style:"font-size:1.3rem;min-width:22px"},t),el("span",{},sub))))));
+}
+
+/* downloads */
+function csvText(){
+  const head=["code","group","level","practice","excluded","date","time_sec","finished","t1_score","t2_score","t3_score","tests_passed","q1_marker1","q1_marker2","q1","q2_marker1","q2_marker2","q2","q3","change_score","change_full","understanding_score","questions_time_sec","python_months","python_self_rating","ai_tool_use","used_counter_before","ai_app","prompts","ai_use_coder1","ai_use_coder2","ai_use","notes"];
+  const rows=allSessions().map(s=>{ const x=d(s), m=s.marks||{}, q=s.questionnaire||{};
+    return [s.code,s.group,s.level,s.pilot?1:0,s.excluded?1:0,new Date(s.created_at).toISOString(),s.time_sec,s.finished?1:0,x.t1,x.t2,x.t3,x.tests,m.q1A,m.q1B,m.q1,m.q2A,m.q2B,m.q2,x.q3,x.mod,x.modFull,x.under,s.u_time_sec,q.python_months,q.python_self_rating,q.ai_tool_use,q.used_counter_before,s.model,s.ai?.prompts,s.ai?.catA,s.ai?.catB,s.ai?.category,s.notes]; });
+  const esc=v=>{ if(v==null) return ""; const t=String(v); return /[",\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t; };
+  return [head,...rows].map(r=>r.map(esc).join(",")).join("\n");
+}
+function offer(filename,text){
+  const blob=new Blob([text],{type:filename.endsWith(".csv")?"text/csv;charset=utf-8":"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=filename; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000);
+}
+async function downloadCSV(){ if(needGrading()) await gradeAll(); offer("study-results.csv",csvText()); }
+function downloadJSON(){ offer("study-backup.json",JSON.stringify({format:"psp404-kit2",exported_at:new Date().toISOString(),sessions:allSessions()})); }
+function importFile(f){
+  if(!f) return; const r=new FileReader();
+  r.onload=async()=>{ let n=0; try{ const data=JSON.parse(r.result), list=Array.isArray(data)?data:data.sessions;
+      for(const s of list||[]){ if(!s||!s.id||!s.code) continue; const cur=allSessions().find(x=>x.id===s.id); if(cur&&(cur.updated_at||0)>=(s.updated_at||0)) continue; saveLocal(s); queue({action:"submit",session:s}); n++; }
+      confirmBox("Import finished",n+" session"+(n===1?"":"s")+" added.","OK",redraw); }
+    catch(e){ confirmBox("That file didn't work","Choose a study-backup.json file downloaded from this page.","OK",redraw); } };
+  r.readAsText(f);
+}
+
+/* ---------- analysis ---------- */
+function vAnalysis(){
+  const app=document.getElementById("app"); app.className="wrap wide"; app.innerHTML="";
+  const use=allSessions().filter(s=>!s.pilot&&!s.excluded), A=use.filter(s=>s.group==="AI"), C=use.filter(s=>s.group==="Control");
+  const H=[
+    {title:"H1 · Is the AI group faster?",get:s=>s.time_sec,alt:"less",max:600,unit:"seconds",say:(a,c)=>"AI group median "+fmtN(a,0)+" s, Control "+fmtN(c,0)+" s."},
+    {title:"H2 · Does the AI group pass more tests?",get:s=>d(s).tests,alt:"greater",max:10,unit:"tests out of 10",say:(a,c)=>"AI group median "+fmtN(a)+", Control "+fmtN(c)+" (out of 10)."},
+    {title:"H3 · Does the AI group understand their code less?",get:s=>d(s).under,alt:"less",max:10,unit:"points out of 10",say:(a,c)=>"AI group median "+fmtN(a)+", Control "+fmtN(c)+" (out of 10)."}
+  ];
+  app.append(el("div",{class:"stack-lg fade"},
+    keyCard(),
+    el("div",{class:"stack"},el("h1",{},"Analysis"),el("p",{class:"muted"},A.length+" AI and "+C.length+" Control participants. Practice runs and excluded sessions aren't counted.")),
+    !use.length? el("div",{class:"card"},el("p",{class:"muted"},"Results appear here once both groups have finished sessions.")) : null,
+    ...(use.length?H.map(h=>hCard(h,A,C)):[]),
+    use.length? moreCard(A,C) : null,
+    el("div",{class:"hint small stack"},
+      el("p",{},el("b",{},"How to read this. "),"“Supported” means the difference is unlikely to be chance (one-sided p below .05, Mann–Whitney U). “Not shown” means there isn't enough evidence for the prediction; with small groups that is not the same as “no effect”."))));
+  if(grading!=="running"&&needGrading()) gradeAll();
+}
+function hCard(h,A,C){
+  const a=A.map(h.get).filter(v=>v!=null&&!isNaN(v)), c=C.map(h.get).filter(v=>v!=null&&!isNaN(v));
+  const mw=a.length&&c.length?mannWhitney(a,c):null, p=mw?(h.alt==="less"?mw.p_less:mw.p_greater):null;
+  const missing=A.length+C.length-a.length-c.length;
+  const verdict=!mw?el("span",{class:"chip"},"Waiting for both groups"):p<0.05?el("span",{class:"chip ok"},"Supported"):el("span",{class:"chip warn"},"Not shown");
+  return el("section",{class:"card stack"},
+    el("div",{class:"spread"},el("h2",{},h.title),verdict),
+    el("p",{class:"verdict"},mw?h.say(median(a),median(c))+" p = "+fmtP(p)+".":"Needs at least one finished session in each group."),
+    dots(a,c,h.max),
+    missing? el("p",{class:"small muted"},missing+" session"+(missing===1?" isn't":"s aren't")+" included yet"+(h.max===10&&h.title.startsWith("H3")?" because Q1 or Q2 still needs a final mark.":" while code is being checked.")) : null,
+    mw? el("details",{class:"ref"},el("summary",{},"Details for the report"),el("div",{},el("table",{},el("tbody",{},
+      ...[["n (AI / Control)",a.length+" / "+c.length],["Mean (SD), AI",fmtN(mean(a))+" ("+fmtN(sd(a))+")"],["Mean (SD), Control",fmtN(mean(c))+" ("+fmtN(sd(c))+")"],
+        ["Mann–Whitney U (AI)",fmtN(mw.U1)],["p one-sided",fmtP(p)],["p two-sided",fmtP(mw.p_two)],["Rank-biserial r",fmtN(mw.r_rb,2)],["Method",mw.method]]
+      .map(([k,v])=>el("tr",{},el("td",{},k),el("td",{class:"n"},v))))))) : null);
+}
+function dots(a,c,max){
+  const W=640,H=110,L=78,R=18,T=10,B=24,x=v=>L+(W-L-R)*(Math.min(v,max)/max), ns="http://www.w3.org/2000/svg", svg=document.createElementNS(ns,"svg");
+  svg.setAttribute("viewBox","0 0 "+W+" "+H); svg.setAttribute("width","100%"); svg.setAttribute("role","img"); svg.setAttribute("aria-label","Each participant's score, by group; the dark line is the median");
+  const add=(t,at,tx)=>{ const n=document.createElementNS(ns,t); for(const k in at) n.setAttribute(k,at[k]); if(tx!=null) n.textContent=tx; svg.appendChild(n); };
+  for(const t of (max===600?[0,120,240,360,480,600]:[0,2,4,6,8,10])){ add("line",{x1:x(t),x2:x(t),y1:T,y2:H-B,stroke:"var(--line)"}); add("text",{x:x(t),y:H-6,"text-anchor":"middle"},t); }
+  for(const [lab,vals,y,col] of [["AI",a,T+20,"var(--accent)"],["Control",c,T+56,"var(--ctrl)"]]){
+    add("text",{x:6,y:y+4},lab); const seen=new Map();
+    for(const v of vals){ const k=Math.round(v*10), i=seen.get(k)||0; seen.set(k,i+1); add("circle",{cx:x(v),cy:y+(i%2?1:-1)*Math.ceil(i/2)*7,r:5.5,fill:col,"fill-opacity":.75,stroke:col}); }
+    const md=median(vals); if(md!=null) add("line",{x1:x(md),x2:x(md),y1:y-15,y2:y+15,stroke:"var(--ink)","stroke-width":2.5});
+  }
+  return el("div",{style:"overflow-x:auto"},svg);
+}
+function moreCard(A,C){
+  const num=(arr,k)=>arr.map(s=>+s.questionnaire?.[k]).filter(v=>!isNaN(v)), cnt=(arr,f)=>arr.filter(f).length;
+  const full=arr=>arr.map(s=>d(s).modFull).filter(v=>v!=null), fa=full(A), fc=full(C);
+  const fz=fa.length&&fc.length? fisher(fa.filter(v=>v).length,fa.filter(v=>!v).length,fc.filter(v=>v).length,fc.filter(v=>!v).length):null;
+  const und=arr=>arr.map(s=>d(s).under).filter(v=>v!=null);
+  const tr=(k,va,vc)=>el("tr",{},el("td",{},k),el("td",{class:"n"},va),el("td",{class:"n"},vc));
+  return el("details",{class:"ref"},el("summary",{},"More: group balance, the code change, how AI was used"),
+    el("div",{},el("table",{},el("thead",{},el("tr",{},el("th",{},""),el("th",{style:"text-align:right"},"AI"),el("th",{style:"text-align:right"},"Control"))),el("tbody",{},
+      tr("One course / two or more",cnt(A,s=>s.level==="1")+" / "+cnt(A,s=>s.level==="2+"),cnt(C,s=>s.level==="1")+" / "+cnt(C,s=>s.level==="2+")),
+      tr("Median months of Python",fmtN(median(num(A,"python_months"))),fmtN(median(num(C,"python_months")))),
+      tr("Median skill (1–5)",fmtN(median(num(A,"python_self_rating"))),fmtN(median(num(C,"python_self_rating")))),
+      tr("Used Counter before",cnt(A,s=>s.questionnaire?.used_counter_before==="yes"),cnt(C,s=>s.questionnaire?.used_counter_before==="yes")),
+      tr("Code change fully correct",fa.filter(v=>v).length+" of "+fa.length,fc.filter(v=>v).length+" of "+fc.length),
+      ...["Delegation","Engaged","Minimal"].map(k=>{ const g=A.filter(s=>s.ai?.category===k); return tr("Understanding, AI "+k.toLowerCase()+" (n "+g.length+")",fmtN(median(und(g))),""); }),
+      tr("Understanding, Control (n "+C.length+")","",fmtN(median(und(C)))))),
+      el("p",{class:"small muted"},"Code change, Fisher's exact test (AI fewer fully correct): p = "+(fz?fmtP(fz.p_less):"—")+" one-sided, "+(fz?fmtP(fz.p_two):"—")+" two-sided. The ChatGPT-use rows are descriptive only.")));
+}
+
+/* ---------- routing ---------- */
+const ROUTES={setup:vSetup,results:vResults,analysis:vAnalysis};
+function currentRoute(){ const h=location.hash.slice(1); return ROUTES[h]?h:"setup"; }
+function route(){ inFlow=false; participantMode=false; setProgress(null); paintBar(); ROUTES[currentRoute()](); }
+function redraw(){ document.getElementById("modal-root").innerHTML=""; route(); }
+let pending=false;
+function typing(){ const a=document.activeElement; return a&&a.closest&&a.closest("#app")&&/^(INPUT|TEXTAREA)$/.test(a.tagName); }
+document.addEventListener("focusout",()=>setTimeout(()=>{ if(pending&&!typing()){ pending=false; dataChanged(); } },0));
+function dataChanged(){
+  if(participantMode) return;
+  const app=document.getElementById("app");
+  if(app.querySelector(".modal")) return;
+  const r=currentRoute();
+  if(r==="setup"){ return; }
+  if(typing()){ pending=true; return; }
+  if(inFlow) return; // never jump out of a marking screen
+  const y=window.scrollY; ROUTES[r](); window.scrollTo(0,y);
+}
+window.addEventListener("hashchange",()=>{ if(!participantMode) route(); });
+if(!joinFromLink()){
+  if(draft&&draft.remote) show();
+  else if(draft&&draft.step&&!["consent","welcome","done"].includes(draft.step)) show();
+  else { if(draft&&draft.step==="done") clearDraft(); route(); }
+}
+initDb();
+</script>
+
+</body>
+</html>
