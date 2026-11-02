@@ -233,19 +233,117 @@ details.tip{border-color:var(--sun);background:var(--sun-soft)}
 .calm h1{font-weight:700}
 
 /* experimenter tables */
-.list{display:flex;flex-direction:column;border:1.5px solid var(--line);border-radius:18px;background:var(--surface);overflow:hidden}
-.item+.item{border-top:1.5px solid var(--line)}
-.item>summary{list-style:none;cursor:pointer;padding:12px 16px;display:grid;grid-template-columns:70px 90px 1fr auto;gap:10px;align-items:center}
-.item>summary::-webkit-details-marker{display:none}
-.item>summary .chip{justify-self:start}
-.item>summary .nums{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.88rem;color:var(--muted)}
-.item[open]>summary{background:var(--raised)}
-.item .body{padding:16px;display:flex;flex-direction:column;gap:14px;border-top:1.5px solid var(--line)}
-@media (max-width:560px){.item>summary{grid-template-columns:60px 1fr auto}.item>summary .nums{display:none}}
-.ticks{display:inline-flex;gap:4px;flex-wrap:wrap}
-.tick{font-family:var(--mono);font-size:.75rem;padding:1px 6px;border-radius:6px;font-weight:700}
-.tick.p{background:var(--go-soft);color:var(--ok)}
-.tick.f{background:var(--coral-soft);color:var(--coral-dark)}
+/* results: filters, table, bars and marking pips */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.fchips{display:flex;flex-wrap:wrap;gap:6px}
+.fchip{padding:6px 12px;font-size:.88rem;box-shadow:none}
+.fchip:active:not(:disabled){transform:none;box-shadow:none}
+.fchip .n{font-family:var(--mono);font-size:.78rem;color:var(--muted);margin-left:6px}
+.fchip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.fchip[aria-pressed="true"] .n{color:inherit;opacity:.7}
+.tools-r{display:flex;gap:8px;align-items:center;flex:1 1 260px;justify-content:flex-end}
+.tools-r input[type=text]{max-width:180px;padding:8px 12px;border-radius:999px}
+select{font:inherit;font-weight:700;font-size:.9rem;color:var(--ink);background:var(--surface);border:1.5px solid var(--line-strong);border-radius:999px;padding:8px 12px}
+.rt{border:1.5px solid var(--line);border-radius:18px;background:var(--surface);overflow:hidden}
+.rt-row{display:grid;grid-template-columns:76px 84px 62px minmax(150px,1fr) minmax(150px,1fr) 56px 56px 112px;gap:10px;align-items:center;
+  width:100%;text-align:left;font-weight:600;border:0;border-radius:0;box-shadow:none;background:none;padding:10px 16px}
+.rt-row:active:not(:disabled){transform:none;box-shadow:none}
+.rt-row+.rt-row{border-top:1.5px solid var(--line)}
+button.rt-row:hover{background:var(--raised)}
+.rt-row.on{background:var(--brand-soft)}
+.rt-row.dim>*:not(.rt-st){opacity:.55}
+.rt-head{font-size:.78rem;font-weight:800;color:var(--muted);padding-block:9px;background:var(--raised)}
+.rt-code{font-family:var(--mono);font-size:.95rem}
+.rt-time{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.9rem}
+.rt-row [data-l]::before{display:none}
+.bar-cell{display:inline-flex;align-items:center;gap:8px}
+.bar-cell b{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.88rem;min-width:40px}
+.segs{display:inline-flex;gap:5px;align-items:center}
+.sg{display:inline-flex;gap:2px;vertical-align:middle}
+.sg i{display:block;width:9px;height:15px;border-radius:3px;background:var(--line)}
+.sg i.y{background:var(--go)}
+.sg i.p{background:var(--line);opacity:.45}
+.sg i.u{background:repeating-linear-gradient(135deg,var(--sun) 0 2px,var(--sun-soft) 2px 4.5px);outline:1px solid var(--sun);outline-offset:-1px}
+.pips{display:inline-flex;gap:3px}
+.pip{width:21px;height:21px;border-radius:50%;border:1.5px dashed var(--line-strong);font-style:normal;font-size:.7rem;font-weight:800;display:inline-grid;place-items:center;color:var(--muted);font-family:var(--mono)}
+.pip.on{background:var(--jade-deep);border:1.5px solid var(--jade-deep);color:var(--bg)}
+.pip.mine{border:2px solid var(--brand);color:var(--brand)}
+.pip-final,.pip-differ{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;font-family:var(--mono);font-weight:800;font-size:.9rem}
+.pip-final{background:var(--go-soft);color:var(--ok);border:1.5px solid var(--go)}
+.pip-differ{background:var(--coral-soft);color:var(--coral-dark);border:1.5px solid var(--coral)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center}
+.legend>span{display:inline-flex;gap:6px;align-items:center}
+.legend .pip,.legend .pip-final,.legend .pip-differ{transform:scale(.85)}
+@media (max-width:760px){
+  .rt-head{display:none}
+  .rt-row{grid-template-columns:auto auto 1fr auto;grid-template-areas:"code grp time st" "tests tests tests tests" "under under under under" "q1 q2 q2 q2";row-gap:8px}
+  .rt-code{grid-area:code}.rt-grp{grid-area:grp}.rt-time{justify-self:end}.rt-st{grid-area:st;justify-self:end}.rt-tests{grid-area:tests}.rt-under{grid-area:under}.rt-time{grid-area:time}.rt-q1{grid-area:q1}.rt-q2{grid-area:q2}
+  .rt-row [data-l]{display:flex;align-items:center;gap:8px}
+  .rt-row [data-l]::before{display:inline-block;content:attr(data-l);font-family:var(--sans);font-size:.72rem;font-weight:800;color:var(--muted);min-width:22px}
+  .tools-r{justify-content:flex-start}
+  .tools-r input[type=text]{max-width:none;flex:1}
+}
+.mk-prog{display:grid;grid-template-columns:132px 1fr 70px;gap:10px;align-items:center}
+.mk-prog.me .label{color:var(--ink)}
+.meter{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--jade-deep);border-radius:99px}
+.nums{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.seg{display:inline-flex;align-items:center;border:1.5px solid var(--line-strong);border-radius:999px;padding:3px;gap:2px;background:var(--surface)}
+.seg button{box-shadow:none;border:0;padding:6px 12px;font-size:.86rem;background:none}
+.seg button:active:not(:disabled){transform:none;box-shadow:none}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+/* one session: side panel on a wide screen, a full sheet on a phone */
+html.drawer-open{overflow:hidden}
+.dr-back{position:fixed;inset:0;background:rgba(10,12,20,.4);z-index:15}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(620px,100vw);background:var(--bg);z-index:16;display:flex;flex-direction:column;box-shadow:-14px 0 40px rgba(0,0,0,.2)}
+.dr-head{display:flex;align-items:center;gap:8px;padding:calc(12px + env(safe-area-inset-top,0px)) 14px 12px 18px;border-bottom:1.5px solid var(--line);background:var(--surface)}
+.dr-head .quiet{font-size:1.3rem;line-height:1;padding:6px 10px;color:var(--ink)}
+.dr-head .quiet:disabled{opacity:.25}
+.dr-code{font-family:var(--mono);font-size:1.15rem}
+.dr-body{flex:1;overflow-y:auto;padding:16px 18px 40px;display:flex;flex-direction:column;gap:14px;overscroll-behavior:contain}
+.dr-scores b{font-size:1.15rem}
+@media (prefers-reduced-motion:no-preference){.drawer{animation:slidein .2s ease-out}@keyframes slidein{from{transform:translateX(40px);opacity:.4}to{transform:none;opacity:1}}}
+.sec{display:flex;flex-direction:column;gap:2px;margin-top:8px;padding-top:12px;border-top:1.5px solid var(--line)}
+.tcard{background:var(--surface);border:1.5px solid var(--line);border-left-width:6px;border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.tcard.y{border-left-color:var(--go)}.tcard.w{border-left-color:var(--sun)}.tcard.n{border-left-color:var(--coral)}.tcard.need{border-left-color:var(--sun);border-left-style:dashed}
+.tcard .why{color:var(--coral-dark);font-weight:700}
+.tag{font-size:.74rem;font-weight:800;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.tag.auto{background:var(--raised);color:var(--muted);border:1.5px solid var(--line)}
+.tag.need{background:var(--sun-soft);color:var(--warn);border:1.5px solid var(--sun)}
+table.tt{font-size:.86rem}
+.tt th{font-size:.74rem;padding:4px 6px}
+.tt td{padding:6px;vertical-align:top}
+.tt code{font-size:.8rem;white-space:pre-wrap;word-break:break-word}
+.tt-mark{font-weight:900;width:18px}
+.tt tr.y .tt-mark{color:var(--ok)} .tt tr.n .tt-mark{color:var(--coral-dark)}
+.tt tr.n td:last-child code{color:var(--coral-dark);border-color:var(--coral)}
+.cv{font-family:var(--mono);font-size:13px;line-height:1.65;background:var(--code-bg);border:1.5px solid var(--line);border-radius:12px;padding:8px 0;margin:0;overflow-x:auto}
+.cv .ln{display:block;white-space:pre;padding-right:12px;min-width:max-content}
+.cv .ln::before{content:attr(data-n);display:inline-block;width:30px;text-align:right;margin-right:12px;color:var(--muted);opacity:.65}
+.cv .ln.y{background:var(--go-soft)}.cv .ln.n{background:var(--coral-soft)}
+.cv .ln.add{background:var(--sun-soft);box-shadow:inset 3px 0 var(--sun)}
+.cv .ln.del{color:var(--muted);text-decoration:line-through}
+.ord{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ord .label{min-width:84px}
+.oc{width:30px;height:30px;border-radius:9px;display:inline-grid;place-items:center;font-family:var(--mono);font-weight:700;border:1.5px solid var(--line)}
+.oc.y{background:var(--go-soft);border-color:var(--go);color:var(--ok)}
+.oc.n{background:var(--coral-soft);border-color:var(--coral);color:var(--coral-dark)}
+.oc.r{background:var(--raised)}
+.answer{white-space:pre-wrap;margin:0;font-size:1rem;background:var(--raised);border-radius:12px;padding:10px 12px}
+.answer.big{font-size:1.08rem}
+.mk-who{display:inline-flex;gap:6px;align-items:center;font-size:.88rem;color:var(--muted);font-weight:700}
+.mk-who.on{color:var(--ink)}
+/* checklist marking */
+.crit{display:grid;grid-template-columns:30px 1fr auto;gap:14px;align-items:center;text-align:left;padding:14px 16px;border-radius:18px;font-weight:600}
+.crit .box{width:28px;height:28px;border-radius:9px;border:2px solid var(--line-strong);display:grid;place-items:center;color:transparent;font-weight:900}
+.crit b{display:block;font-size:1.02rem}
+.crit span span{font-size:.9rem;color:var(--muted)}
+.crit[aria-pressed="true"]{border-color:var(--go);background:var(--go-soft);box-shadow:0 3px 0 var(--go)}
+.crit[aria-pressed="true"] .box{background:var(--go);border-color:var(--go);color:#fff}
+kbd{font-family:var(--mono);font-size:.74rem;border:1.5px solid var(--line-strong);border-bottom-width:3px;border-radius:6px;padding:0 6px;color:var(--muted);font-weight:700}
+.mk-total{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.mk-total>b{font-family:var(--display);font-size:2.2rem;line-height:1}
+@media (max-width:560px){.keys{display:none}.mk-prog{grid-template-columns:100px 1fr 60px}}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
 .stats>div{background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:10px 14px}
 .stats b{display:block;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:1.3rem}
@@ -301,6 +399,7 @@ td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
 
 <header class="bar"><div class="bar-in" id="bar"></div><div class="journey" id="progress" hidden></div></header>
 <main class="wrap" id="app"><p class="muted">Loading…</p></main>
+<div id="drawer-root"></div>
 <div id="modal-root"></div>
 
 <script>
@@ -338,8 +437,25 @@ function harness(kind, input, expected){
   const cmp = kind === "mod"
     ? "    __ok = isinstance(__r, (list, tuple)) and list(__r) == __exp\n"
     : "    __ok = (__r == __exp)\n";
-  return "\n\n__inp = " + pyLit(input) + "\n__exp = " + pyLit(expected) + "\ntry:\n" + fnLine +
-    "    __r = __f(__inp)\n" + cmp + "except Exception:\n    __ok = False\nprint('@@RESULT@@' + ('1' if __ok else '0'))\n";
+  // Pass/fail is decided exactly as before; the @@GOT@@ line only reports what the function gave back (or the error),
+  // so the results page can show it. It runs after the result is printed and can't change it.
+  return "\n\n__inp = " + pyLit(input) + "\n__exp = " + pyLit(expected) + "\n__err = None\ntry:\n" + fnLine +
+    "    __r = __f(__inp)\n" + cmp + "except Exception as __e:\n    __ok = False\n    __err = type(__e).__name__\nprint('@@RESULT@@' + ('1' if __ok else '0'))\n" +
+    "try:\n    print('@@GOT@@' + (('!' + __err) if __err else repr(__r)))\nexcept Exception:\n    pass\n";
+}
+// Python-style display of a test's input or expected value (average() gives back a float, so 4 shows as 4.0)
+function pyShow(v, float){
+  if (Array.isArray(v)) return "[" + v.map(x=>pyShow(x)).join(", ") + "]";
+  if (typeof v === "string") return "'" + v.replace(/\\/g,"\\\\").replace(/'/g,"\\'") + "'";
+  if (typeof v === "number" && float && Number.isInteger(v)) return v.toFixed(1);
+  return String(v);
+}
+// Turns Skulpt's error text into a short reason, e.g. "SyntaxError on line 5"
+function codeProblem(err){
+  const e = String(err||""); if (!e) return null;
+  if (/TimeLimitError/.test(e)) return { kind:"time", text:"ran too long (it never finished)" };
+  const m = e.match(/^(\w+Error)\b/); const ln = e.match(/on line (\d+)/);
+  return { kind: m && /Syntax|Indentation|Tab/.test(m[1]) ? "syntax" : "error", name: m ? m[1] : "Error", line: ln ? +ln[1] : null };
 }
 
 function normQ3a(s){ return String(s||"").replace(/[,()\[\]'"]/g," ").trim().split(/\s+/).filter(Boolean).join(" "); }
@@ -399,6 +515,13 @@ function fisher(a,b,c,d){
   for (let x=lo;x<=hi;x++){ const p=Math.exp(lp(x)); if(x<=a) less+=p; if(x>=a) greater+=p; if(p<=pObs*(1+1e-7)) two+=p; }
   return { p_less:Math.min(1,less), p_greater:Math.min(1,greater), p_two:Math.min(1,two) };
 }
+// Agreement between two markers' scores on the same answers: share identical, and Cohen's kappa (unweighted)
+function agreement(pairs){
+  const n=pairs.length; if(!n) return null;
+  const cats=[...new Set(pairs.flat())], agree=pairs.filter(([a,b])=>a===b).length, po=agree/n;
+  let pe=0; for(const c of cats) pe+=(pairs.filter(p=>p[0]===c).length/n)*(pairs.filter(p=>p[1]===c).length/n);
+  return { n, agree, po, pe, kappa: pe>=1-1e-12 ? null : (po-pe)/(1-pe) };
+}
 /*PURE-END*/
 
 /* ---------- Skulpt grading (loaded only on the experimenter views) ---------- */
@@ -426,27 +549,32 @@ function runPython(src){
 }
 const gradeCache = new Map();
 async function gradeCode(kind, code){
-  if (code==null || !String(code).trim()) return TESTS[kind].cases.map(()=>0);
+  if (code==null || !String(code).trim()){ const z=TESTS[kind].cases.map(()=>0); z.blank=true; return z; }
   const key = kind+"\u0000"+code;
   if (gradeCache.has(key)) return gradeCache.get(key);
   await loadSkulpt();
-  const out=[];
+  const out=[], info=[];
   let stuck=false;
   for (const [inp,exp] of TESTS[kind].cases){
-    if (stuck){ out.push(0); continue; }
+    if (stuck){ out.push(0); info.push({ problem:stuck }); continue; }
     const r = await runPython(String(code)+harness(kind,inp,exp));
-    if (!r.ok && /TimeLimitError/.test(r.err||"")) stuck=true; // code that never stops fails the remaining tests too
+    if (!r.ok && /TimeLimitError/.test(r.err||"")) stuck=codeProblem(r.err); // code that never stops fails the remaining tests too
     out.push(r.ok && r.out.includes("@@RESULT@@1") ? 1 : 0);
+    // what the function gave back: the last @@GOT@@ line (anything the participant's own code printed comes before it)
+    const got = r.ok ? (r.out.split("@@GOT@@").pop().split("\n")[0]) : null;
+    info.push(r.ok ? (got.startsWith("!") ? { error:got.slice(1) } : { got }) : { problem:codeProblem(r.err) });
   }
+  out.info = info; // extra detail for the results page; the array itself is unchanged
   gradeCache.set(key,out);
   return out;
 }
 async function gradeSession(s){
   const order = parseOrder(s.tasks?.t1_order);
-  const t1 = order ? await gradeCode("t1", buildT1(order)) : [0,0,0];
+  const asGiven = n => Object.assign(new Array(n).fill(0), { asGiven:true });
+  const t1 = order ? await gradeCode("t1", buildT1(order)) : Object.assign([0,0,0], { blank:true });
   // Kit rule: a task left as given (not attempted) scores 0 on its tests.
-  const t2 = (s.tasks?.t2_code||"")===T2_TEMPLATE ? [0,0,0] : await gradeCode("t2", s.tasks?.t2_code);
-  const t3 = (s.tasks?.t3_code||"").trim()===T3_TEMPLATE.trim() ? [0,0,0,0] : await gradeCode("t3", s.tasks?.t3_code);
+  const t2 = (s.tasks?.t2_code||"")===T2_TEMPLATE ? asGiven(3) : await gradeCode("t2", s.tasks?.t2_code);
+  const t3 = (s.tasks?.t3_code||"").trim()===T3_TEMPLATE.trim() ? asGiven(4) : await gradeCode("t3", s.tasks?.t3_code);
   const mod = await gradeCode("mod", s.understanding?.mod_code);
   return { t1, t2, t3, mod };
 }
@@ -698,7 +826,7 @@ const I18N={
   nextTask:"Next task", submitTasks:"Submit tasks", submitTitle:"Submit your three tasks?", submitText:"You can't change them after this, and the timer stops.", submit:"Submit",
   t1title:"Put the lines in order", t1lead:()=>["These lines make a function that returns the ",B("average")," of a list of numbers. Tap them in the right order. The indentation is already right."],
   yourFunction:"Your function", clear:"Clear", t1hint:"Tap a line in your function to send it back. Drag lines to swap them around.", lines:"Lines", addLine:n=>"Add line "+n, removeLine:n=>"Remove line "+n,
-  t2title:"Find and fix the bug", t2lead:()=>["This function should count the ",B("even")," numbers in a list. For example, ",C("count_even([1, 2, 3, 4])")," should return 2. One line is wrong."],
+  t2title:"Find and fix the bug", t2lead:()=>["This function should count the ",B("even")," numbers in a list. For example, ",C("count_even([2, 4, 5])")," should return 2. One line is wrong."],
   t2hint:"Tap a line to edit it, then press Enter. Edited lines turn yellow.", undo:"Undo my changes", editLine:n=>"Edit line "+n, lineLabel:(n,ed)=>"Line "+n+(ed?", edited":"")+". Tap to edit.",
   t3title:"Finish the function", t3lead:()=>["Finish ",C("top_word(text)")," so it returns the word that appears most often. Treat upper and lower case as the same and return the word in lower case. Words are separated by spaces, with no punctuation and no ties."],
   t3example:()=>["Example: ",C('top_word("The cat saw the dog")')," returns ",C('"the"'),". Use ",B("Counter"),": the tip card shows how."],
@@ -713,10 +841,10 @@ const I18N={
   qOf:i=>"Question "+i+" of 4 · on your own, no AI",
   q1title:"What was wrong with count_even?", q1p:"In your own words, what was the mistake in the original function, and why does your fix work?",
   yourFixed:"Your fixed version", yourAnswer:"Your answer",
-  q2title:"Walk through your Task 3 code", q2p:()=>["Imagine your function gets the text ",C('"Dog cat dog"'),". What does it count, and what does it give back? Which line picks the answer?"], yourT3:"Your Task 3 code",
-  q3title:"What does this print?", q3p:"This small piece of code is the same for everyone. What would the two print lines show? Your best guess is fine.",
+  q2title:"Walk through your Task 3 code", q2p:()=>["Imagine your function gets the text ",C('"Dog cat dog"'),". Please tell us three things: (1) how many times it counts each word, (2) what it gives back, and (3) which line of your code picks that answer."], yourT3:"Your Task 3 code",
+  q3title:"What does this print?", q3p:"This small piece of code is the same for everyone. What would the two print lines show? Type exactly what Python would show. Your best guess is fine.",
   first:"First line prints", second:"Second line prints",
-  chTitle:"Change your code", chp:()=>["Last one. Change your Task 3 function so it gives back a ",B("list of the two most common words"),", most common first. Your code is already in the box, so you only need to change it."],
+  chTitle:"Change your code", chp:()=>["Last one. Change your Task 3 function so it gives back a ",B("list of the two most common words"),", most common first. For example, ",C('"red blue red green blue red"')," gives back ",C('["red", "blue"]'),". Your code is already in the box, so you only need to change it."],
   next:"Next", finishPart:"Finish this part",
   almost:"Almost there!", lastBit:"Last bit: four questions about you", tapAnswers:"Tap your answers. It takes about a minute.", cont:"Continue",
   aboutYou:"About you", fourQ:"Four quick questions",
@@ -760,7 +888,7 @@ const I18N={
   nextTask:"下一个任务", submitTasks:"提交任务", submitTitle:"提交这三个任务吗？", submitText:"提交后就不能再修改，计时也会停止。", submit:"提交",
   t1title:"把代码行排好顺序", t1lead:()=>["这些代码行组成一个函数，返回一组数字的",B("平均值"),"。请按正确的顺序点击它们。缩进已经是正确的。"],
   yourFunction:"你的函数", clear:"清空", t1hint:"点击函数里的某一行可以把它放回去；拖动可以调整顺序。", lines:"代码行", addLine:n=>"添加第 "+n+" 行", removeLine:n=>"移除第 "+n+" 行",
-  t2title:"找出并修复错误", t2lead:()=>["这个函数应该统计列表中",B("偶数"),"的个数。例如 ",C("count_even([1, 2, 3, 4])")," 应该返回 2。其中有一行是错的。"],
+  t2title:"找出并修复错误", t2lead:()=>["这个函数应该统计列表中",B("偶数"),"的个数。例如 ",C("count_even([2, 4, 5])")," 应该返回 2。其中有一行是错的。"],
   t2hint:"点击某一行即可编辑，然后按回车。修改过的行会变成黄色。", undo:"撤销我的修改", editLine:n=>"编辑第 "+n+" 行", lineLabel:(n,ed)=>"第 "+n+" 行"+(ed?"，已修改":"")+"。点击编辑。",
   t3title:"补全这个函数", t3lead:()=>["补全 ",C("top_word(text)"),"，让它返回出现次数最多的单词。大小写视为相同，返回小写形式。单词之间用空格分隔，没有标点，也不会出现并列。"],
   t3example:()=>["例如：",C('top_word("The cat saw the dog")')," 返回 ",C('"the"'),"。请使用 ",B("Counter"),"，提示卡里有用法。"],
@@ -775,10 +903,10 @@ const I18N={
   qOf:i=>"问题 "+i+" / 4 · 独立完成，不使用 AI",
   q1title:"count_even 哪里出错了？", q1p:"用你自己的话说说：原来的函数错在哪里？你的修改为什么有效？",
   yourFixed:"你修改后的版本", yourAnswer:"你的回答",
-  q2title:"逐步讲讲你的任务 3 代码", q2p:()=>["假设你的函数收到文本 ",C('"Dog cat dog"'),"。它会统计出什么？返回什么？是哪一行选出了答案？"], yourT3:"你的任务 3 代码",
-  q3title:"这段代码会输出什么？", q3p:"这段小代码每个人都一样。两行 print 会分别输出什么？写下你的最佳猜测即可。",
+  q2title:"逐步讲讲你的任务 3 代码", q2p:()=>["假设你的函数收到文本 ",C('"Dog cat dog"'),"。请告诉我们三点：(1) 每个单词被统计了几次，(2) 函数返回什么，(3) 你代码中的哪一行选出了这个答案。"], yourT3:"你的任务 3 代码",
+  q3title:"这段代码会输出什么？", q3p:"这段小代码每个人都一样。两行 print 会分别输出什么？请按 Python 实际显示的样子输入。写下你的最佳猜测即可。",
   first:"第一行输出", second:"第二行输出",
-  chTitle:"修改你的代码", chp:()=>["最后一题。修改你的任务 3 函数，让它返回",B("出现次数最多的两个单词组成的列表"),"，次数最多的排在前面。你的代码已经在框里了，只需要修改即可。"],
+  chTitle:"修改你的代码", chp:()=>["最后一题。修改你的任务 3 函数，让它返回",B("出现次数最多的两个单词组成的列表"),"，次数最多的排在前面。例如 ",C('"red blue red green blue red"')," 返回 ",C('["red", "blue"]'),"。你的代码已经在框里了，只需要修改即可。"],
   next:"下一题", finishPart:"完成这一部分",
   almost:"快完成了！", lastBit:"最后：四个关于你的问题", tapAnswers:"点选你的答案，大约一分钟。", cont:"继续",
   aboutYou:"关于你", fourQ:"四个简单问题",
@@ -1132,11 +1260,11 @@ function submitTasks(timedOut){
 const COPY={
   en:{
     1:"Put these Python lines in the right order to make a function that returns the average of a list of numbers. The indentation is already correct. Give the order as line numbers.\n\n"+Object.entries(T1_LINES).map(([k,v])=>"["+k+"] "+v).join("\n"),
-    2:"This Python function should count how many even numbers are in a list. For example, count_even([1, 2, 3, 4]) should return 2. One line is wrong. Find and fix it.\n\n"+T2_TEMPLATE,
+    2:"This Python function should count how many even numbers are in a list. For example, count_even([2, 4, 5]) should return 2. One line is wrong. Find and fix it.\n\n"+T2_TEMPLATE,
     3:"Finish this Python function so it returns the word that appears most often in text. Treat upper and lower case as the same and return the word in lower case. Words are separated by spaces, with no punctuation and no ties. Use Counter from collections. Example: top_word(\"The cat saw the dog\") returns \"the\".\n\n"+T3_TEMPLATE },
   zh:{
     1:"把下面这些 Python 代码行按正确顺序排列，组成一个返回一组数字平均值的函数。缩进已经是正确的。请用行号写出顺序。\n\n"+Object.entries(T1_LINES).map(([k,v])=>"["+k+"] "+v).join("\n"),
-    2:"这个 Python 函数应该统计列表中偶数的个数。例如 count_even([1, 2, 3, 4]) 应该返回 2。其中有一行是错的，请找出并修复。\n\n"+T2_TEMPLATE,
+    2:"这个 Python 函数应该统计列表中偶数的个数。例如 count_even([2, 4, 5]) 应该返回 2。其中有一行是错的，请找出并修复。\n\n"+T2_TEMPLATE,
     3:"补全这个 Python 函数，让它返回文本中出现次数最多的单词。大小写视为相同，返回小写形式。单词之间用空格分隔，没有标点，也不会出现并列。请使用 collections 里的 Counter。例如 top_word(\"The cat saw the dog\") 返回 \"the\"。\n\n"+T3_TEMPLATE }
 };
 function copyTask(n,btn){
@@ -1471,69 +1599,305 @@ async function gradeAll(){
 }
 function needGrading(){ return allSessions().some(s=>!grades.has(s.id)||grades.get(s.id).k!==gkey(s)); }
 
+/* where each written answer is in marking: none, half (one marker), differ (both, not agreed), final */
+const counted=s=>!s.pilot&&!s.excluded;
+function qState(s,q){ const m=s.marks||{}, a=m[q+"A"], b=m[q+"B"];
+  if(m[q]!=null) return {k:"final",v:+m[q],a,b};
+  if(a!=null&&b!=null) return {k:"differ",a,b};
+  if(a!=null||b!=null) return {k:"half",a,b};
+  return {k:"none"}; }
+function sStatus(s){
+  if(s.pilot) return ["practice","Practice"];
+  if(s.excluded) return ["excluded","Excluded"];
+  const k=[qState(s,"q1").k,qState(s,"q2").k];
+  if(k.includes("differ")) return ["settle","Settle marks"];
+  if(k.some(v=>v!=="final")) return ["mark","To mark"];
+  return ["done","Complete"];
+}
+const MARKER_KEY="psp404-marker", VIEW_KEY="psp404-results-view";
+const view=Object.assign({filter:"all",q:"",sort:"new"},lsGet(VIEW_KEY,{}));
+const keepView=()=>lsSet(VIEW_KEY,view);
+function myMarker(){ const m=lsGet(MARKER_KEY,null); return m==="A"||m==="B"?m:null; }
+const MK=r=>r==="A"?"Marker 1":"Marker 2";
+const FILTERS=[["all","All",()=>true],["AI","AI",s=>counted(s)&&s.group==="AI"],["Control","Control",s=>counted(s)&&s.group==="Control"],
+  ["mark","To mark",s=>counted(s)&&sStatus(s)[0]!=="done"],["practice","Practice & excluded",s=>!counted(s)]];
+const SORTS=[["new","Newest first"],["code","Code"],["time","H1 · fastest"],["tests","H2 · most tests"],["under","H3 · most understanding"]];
+function visibleSessions(){
+  const f=(FILTERS.find(x=>x[0]===view.filter)||FILTERS[0])[2], q=String(view.q||"").trim().toLowerCase();
+  const nullsLast=(get,dir)=>(a,b)=>{ const x=get(a),y=get(b); if(x==null&&y==null) return 0; if(x==null) return 1; if(y==null) return -1; return dir*(x-y); };
+  const by={ new:(a,b)=>(b.created_at||0)-(a.created_at||0), code:(a,b)=>String(a.code).localeCompare(String(b.code),undefined,{numeric:true}),
+    time:nullsLast(s=>s.time_sec,1), tests:nullsLast(s=>d(s).tests,-1), under:nullsLast(s=>d(s).under,-1) };
+  return allSessions().filter(f).filter(s=>!q||String(s.code).toLowerCase().includes(q)).sort(by[view.sort]||by.new);
+}
+
 function vResults(){
   const app=document.getElementById("app"); app.className="wrap wide"; app.innerHTML="";
-  const all=allSessions(), counted=all.filter(s=>!s.pilot&&!s.excluded);
-  const nAI=counted.filter(s=>s.group==="AI").length, nC=counted.length-nAI;
-  const live=all.filter(s=>!s.pilot&&!s.excluded);
-  const toMark=live.filter(s=>d(s).needs).length;
-  const unmarked=live.filter(s=>{ const m=s.marks||{}; return ["q1A","q1B","q2A","q2B"].some(k=>m[k]==null); }).length;
-  const disagreements=disagreeList().length;
+  const all=allSessions();
   const fileIn=el("input",{type:"file",accept:".json,application/json",hidden:true,onchange:e=>importFile(e.target.files[0])});
+  const list=visibleSessions();
+  const search=el("input",{type:"text",id:"r-search",placeholder:"Find a code",value:view.q||"","aria-label":"Find a participant code",
+    oninput:e=>{ view.q=e.target.value; keepView(); paintTable(); }});
+  const sort=el("select",{id:"r-sort","aria-label":"Sort by",onchange:e=>{ view.sort=e.target.value; keepView(); paintTable(); }},
+    SORTS.map(([v,l])=>el("option",{value:v,selected:view.sort===v},l)));
+  const chips=el("div",{class:"fchips",role:"group","aria-label":"Show"},FILTERS.map(([v,l,f])=>el("button",{type:"button",class:"fchip","aria-pressed":String(view.filter===v),
+    onclick:()=>{ view.filter=v; keepView(); vResults(); }},l,el("span",{class:"n"},all.filter(f).length))));
+  const tableWrap=el("div",{id:"r-table"});
+  function paintTable(){ const ls=visibleSessions(); tableWrap.innerHTML="";
+    tableWrap.append(ls.length? resultsTable(ls) : el("div",{class:"card"},el("p",{class:"muted"},all.length?"No sessions match.":"No sessions yet. Finished sessions appear here from every device and every participant link."))); }
+  paintTable();
   app.append(el("div",{class:"stack-lg fade"},
     keyCard(),
     el("div",{class:"spread"},el("h1",{},"Results"),
       el("div",{class:"row"},el("button",{onclick:downloadCSV},"Download spreadsheet (CSV)"))),
-    el("div",{class:"stats"},
-      el("div",{},el("span",{class:"label"},"AI group"),el("b",{},nAI),el("span",{class:"small muted"},"participants")),
-      el("div",{},el("span",{class:"label"},"Control group"),el("b",{},nC),el("span",{class:"small muted"},"participants")),
-      el("div",{},el("span",{class:"label"},"Still to mark"),el("b",{},toMark),el("span",{class:"small muted"},"sessions without a final Q1 and Q2 score"))),
     grading==="running"? el("p",{class:"small muted"},"Checking participants' code…") : grading==="error"? el("div",{class:"hint warn small"},"The code checker didn't load. Check the internet connection and reload the page.") : null,
-    all.length? el("div",{class:"card stack"},
-      el("h2",{},unmarked? "Next: mark the written answers" : disagreements? "Next: settle "+disagreements+" disagreement"+(disagreements===1?"":"s") : "All answers are marked"),
-      el("p",{class:"muted small"},"Two of you mark Q1 and Q2 separately, one answer at a time. The group is hidden so marking stays fair. Where your marks differ, you agree a final score together."),
-      el("div",{class:"row"},el("button",{class:unmarked?"primary":"",onclick:()=>startMarking("A")},"Mark as marker 1"),el("button",{class:unmarked?"primary":"",onclick:()=>startMarking("B")},"Mark as marker 2"),
-        disagreements? el("button",{class:unmarked?"":"primary",onclick:startSettling},"Settle disagreements ("+disagreements+")") : null)) : null,
-    all.length? el("div",{class:"stack"},el("h2",{},"Sessions"),el("div",{class:"list"},all.map(sessionItem)))
-      : el("div",{class:"card stack"},el("h2",{},"No sessions yet"),el("p",{class:"muted"},"Finished sessions appear here with their scores, from every device and every participant link. Start one from Run session.")),
+    all.length? markingCard() : null,
+    el("div",{class:"stack"},
+      el("div",{class:"toolbar"},chips,el("div",{class:"tools-r"},search,sort)),
+      tableWrap,
+      all.length? legend() : null),
     saveStatus(), el("details",{class:"ref"},el("summary",{},"Backup and import"),
-      el("div",{},saveStatus(),
+      el("div",{},
         el("p",{class:"small muted"},"Download backup saves every session as one file. Import uploads sessions from a backup file to the Google Sheet (for example, ones made in the earlier Claude version of this page)."),
         el("div",{class:"row"},el("button",{onclick:downloadJSON},"Download backup"),el("button",{onclick:()=>fileIn.click()},"Import backup"),fileIn),
         pasteImport(),
         el("p",{class:"small muted"},allConsents().length+" consent record"+(allConsents().length===1?"":"s")+" (initials and date only, not linked to answers)."),
         el("div",{},el("button",{onclick:()=>offer("consent-records.csv",["initials,date,form",...allConsents().map(c=>[c.initials,c.date,c.form].join(","))].join("\n"))},"Download consent records"))))
   ));
+  if(detailId) paintDetail();
   if(grading!=="running"&&needGrading()) gradeAll();
 }
-function ticks(arr){ return arr? el("span",{class:"ticks"},arr.map((v,i)=>el("span",{class:"tick "+(v?"p":"f")},(v?"✓":"✗")+(i+1)))) : el("span",{class:"small muted"},"checking…"); }
-const openItems=new Set();
-function sessionItem(s){
-  const x=d(s), ai=s.group==="AI"; s.ai=s.ai||{};
-  const status=s.pilot?el("span",{class:"chip"},"Practice"):s.excluded?el("span",{class:"chip bad"},"Excluded"):x.needs?el("span",{class:"chip warn"},"To mark"):el("span",{class:"chip ok"},"Done");
-  const det=el("details",{class:"item",open:openItems.has(s.id)});
-  det.addEventListener("toggle",()=>{ det.open?openItems.add(s.id):openItems.delete(s.id); });
-  det.append(el("summary",{},el("b",{style:"font-family:var(--mono)"},s.code),el("span",{class:"chip "+(ai?"ai":"ctrl")},ai?"AI":"Control"),
-    el("span",{class:"nums"},(s.time_sec!=null?Math.round(s.time_sec)+" s":"—")+" · tests "+(x.tests??"…")+"/10 · understanding "+(x.under??"—")+"/10"),status));
-  const q=s.questionnaire||{};
-  det.append(el("div",{class:"body"},
-    el("div",{class:"stats"},
-      el("div",{},el("span",{class:"label"},"Time"),el("b",{},s.time_sec!=null?Math.round(s.time_sec)+" s":"—"),el("span",{class:"small muted"},s.finished?"submitted":"ran out of time")),
-      el("div",{},el("span",{class:"label"},"Tests passed"),el("b",{},(x.tests??"…")+" / 10")),
-      el("div",{},el("span",{class:"label"},"Understanding"),el("b",{},(x.under??"—")+" / 10"),el("span",{class:"small muted"},"Q1 "+(x.q1??"?")+" · Q2 "+(x.q2??"?")+" · Q3 "+x.q3+" · change "+(x.mod??"…")))),
-    el("div",{class:"stack"},
-      el("div",{class:"row"},el("span",{class:"label"},"Task 1"),el("code",{},s.tasks?.t1_order||"(blank)"),ticks(x.g?.t1)),
-      el("div",{class:"row"},el("span",{class:"label"},"Task 2"),ticks(x.g?.t2)), pre(s.tasks?.t2_code||""),
-      el("div",{class:"row"},el("span",{class:"label"},"Task 3"),ticks(x.g?.t3)), pre(s.tasks?.t3_code||""),
-      el("div",{class:"row"},el("span",{class:"label"},"Changed code"),ticks(x.g?.mod)), pre(s.understanding?.mod_code||"")),
-    el("p",{class:"small"},el("b",{},"Q3 answers: "),(s.understanding?.q3_line1||"(blank)")+"  /  "+(s.understanding?.q3_line2||"(blank)")+"  → "+x.q3+" of 2 (scored automatically)"),
-    el("p",{class:"small muted"},"Python "+(q.python_months??"—")+" months · skill "+(q.python_self_rating??"—")+"/5 · AI use "+(q.ai_tool_use??"—")+"/5 · used Counter before: "+(q.used_counter_before??"—")+(q.hard?" · “"+q.hard+"”":"")),
-    ai? aiCoding(s) : null,
+
+/* the marking card: who you are, how far each marker has got, and how well the two agree */
+function markingCard(){
+  const live=allSessions().filter(counted), total=live.length*2, me=myMarker();
+  const done=r=>live.reduce((n,s)=>n+["q1","q2"].filter(q=>(s.marks||{})[q+r]!=null).length,0);
+  const dis=disagreeList().length, ag=agreementFor(live), left=me?total-done(me):0;
+  const pick=r=>{ lsSet(MARKER_KEY,r); vResults(); };
+  const bar=r=>{ const n=done(r); return el("div",{class:"mk-prog"+(me===r?" me":"")},el("span",{class:"label"},MK(r)+(me===r?" · you":"")),
+    el("div",{class:"meter",role:"img","aria-label":MK(r)+" has marked "+n+" of "+total},el("i",{style:"width:"+(total?Math.round(100*n/total):0)+"%"})),el("span",{class:"small nums"},n+" of "+total)); };
+  return el("section",{class:"card stack mk-card"},
+    el("div",{class:"spread"},el("h2",{},"Marking Q1 and Q2"),
+      el("div",{class:"seg",role:"group","aria-label":"Who is marking on this device?"},el("span",{class:"small muted",style:"padding:0 6px"},"I'm"),
+        ["A","B"].map(r=>el("button",{type:"button","aria-pressed":String(me===r),onclick:()=>pick(r)},MK(r))))),
+    el("p",{class:"small muted"},"Q1 and Q2 are the only answers a person marks. You each mark every answer on your own, one at a time, with the group hidden. Tick what the answer does; the score is the number of ticks."),
+    bar("A"),bar("B"),
+    el("div",{class:"row"},
+      !me? el("span",{class:"small"},"Choose who you are above, then start marking.")
+        : left? el("button",{class:"go",onclick:()=>startMarking(me)},"Start marking · "+left+" left")
+        : el("span",{class:"chip ok"},"✓ You've marked every answer"),
+      dis? el("button",{class:me&&!left?"primary":"",onclick:startSettling},"Settle "+dis+" disagreement"+(dis===1?"":"s")+" together") : null),
+    ag? el("p",{class:"small"},"Agreement so far: ",el("b",{},ag.agree+" of "+ag.n)," answers got the same score from both markers ("+Math.round(ag.po*100)+"%) · Cohen's κ = "+(ag.kappa==null?"— (every answer got the same score)":ag.kappa.toFixed(2))+". Report this with your results.") : null);
+}
+function agreementFor(list){ const pairs=[]; for(const s of list){ const m=s.marks||{}; for(const q of ["q1","q2"]) if(m[q+"A"]!=null&&m[q+"B"]!=null) pairs.push([+m[q+"A"],+m[q+"B"]]); } return agreement(pairs); }
+
+function legend(){
+  return el("div",{class:"legend small muted"},
+    el("span",{},el("span",{class:"sg"},el("i",{class:"y"}),el("i",{})),"one block = one test or one point (green = got it)"),
+    el("span",{},el("span",{class:"sg"},el("i",{class:"u"})),"waiting for a mark"),
+    el("span",{},el("span",{class:"pips"},el("i",{class:"pip on"},"1"),el("i",{class:"pip"},"2")),"marker 1 has marked, marker 2 not yet"),
+    el("span",{},el("span",{class:"pip-final"},"2"),"final score"),
+    el("span",{},el("span",{class:"pip-differ"},"≠"),"markers differ"));
+}
+function resultsTable(list){
+  return el("div",{class:"rt",role:"table","aria-label":"Sessions"},
+    el("div",{class:"rt-row rt-head",role:"row"},["Code","Group","H1 · time","H2 · tests","H3 · understanding","Q1","Q2","Status"].map(h=>el("span",{role:"columnheader"},h))),
+    list.map(rowFor));
+}
+const fill=(n,len)=>Array.from({length:len},(_,i)=>n==null?null:(i<n?1:0));
+function segs(groups,label,title){ // groups: arrays of 1 (got it), 0 (didn't), null (waiting); cls "u" marks a waiting-for-a-mark group
+  return el("span",{class:"bar-cell",title},el("b",{},label),el("span",{class:"segs"},groups.map(([arr,cls])=>el("span",{class:"sg"},arr.map(v=>el("i",{class:v===1?"y":v==null?(cls||"p"):""}))))));
+}
+function testsBar(x){
+  const g=x.g, arr=k=>g?Array.from(g[k]):fill(x[k],k==="t3"?4:3);
+  return segs([[arr("t1")],[arr("t2")],[arr("t3")]],(x.tests??"…")+"/10","Tests passed: Task 1 "+(x.t1??"…")+"/3, Task 2 "+(x.t2??"…")+"/3, Task 3 "+(x.t3??"…")+"/4");
+}
+function underBar(x){
+  const q=v=>v==null?[[null,null],"u"]:[fill(v,2)];
+  return segs([q(x.q1),q(x.q2),[fill(x.q3,2)],[x.g?Array.from(x.g.mod):fill(x.mod,4)]],x.under!=null?x.under+"/10":(x.mod==null?"…":"?/10"),
+    "Q1 "+(x.q1??"not marked")+", Q2 "+(x.q2??"not marked")+", Q3 "+x.q3+", change "+(x.mod??"…"));
+}
+function pips(s,q){
+  const st=qState(s,q), m=s.marks||{}, me=myMarker();
+  if(st.k==="final") return el("span",{class:"pip-final",title:q.toUpperCase()+" final score "+st.v+" of 2"},st.v);
+  if(st.k==="differ") return el("span",{class:"pip-differ",title:q.toUpperCase()+": the markers gave different scores. Settle it together."},"≠");
+  const p=r=>el("i",{class:"pip"+(m[q+r]!=null?" on":"")+(me===r&&m[q+r]==null&&counted(s)?" mine":""),title:MK(r)+(m[q+r]!=null?": marked":": not marked yet")},r==="A"?"1":"2");
+  return el("span",{class:"pips"},p("A"),p("B"));
+}
+const ST_CLS={practice:"",excluded:"",settle:"bad",mark:"warn",done:"ok"};
+function rowFor(s){
+  const x=d(s), st=sStatus(s), ai=s.group==="AI";
+  return el("button",{type:"button",role:"row",class:"rt-row"+(detailId===s.id?" on":"")+(counted(s)?"":" dim"),"data-id":s.id,onclick:()=>openDetail(s.id),
+      "aria-label":"Open "+s.code},
+    el("b",{class:"rt-code"},s.code),
+    el("span",{class:"rt-grp"},el("span",{class:"chip "+(ai?"ai":"ctrl")},ai?"AI":"Control")),
+    el("span",{class:"rt-time","data-l":"H1"},s.time_sec!=null?Math.round(s.time_sec)+" s":"—"),
+    el("span",{class:"rt-tests","data-l":"H2"},testsBar(x)),
+    el("span",{class:"rt-under","data-l":"H3"},underBar(x)),
+    el("span",{class:"rt-q1","data-l":"Q1"},pips(s,"q1")),
+    el("span",{class:"rt-q2","data-l":"Q2"},pips(s,"q2")),
+    el("span",{class:"rt-st"},el("span",{class:"chip "+ST_CLS[st[0]]},st[1])));
+}
+
+/* ---------- one session in a side panel (a full sheet on a phone) ---------- */
+let detailId=null, detailFrom=null;
+function openDetail(id){ if(!detailId) detailFrom=document.activeElement; detailId=id; paintDetail(true); }
+function closeDetail(){
+  detailId=null; const r=document.getElementById("drawer-root"); if(r) r.innerHTML="";
+  document.documentElement.classList.remove("drawer-open");
+  document.querySelectorAll(".rt-row.on").forEach(x=>x.classList.remove("on"));
+  if(detailFrom&&document.contains(detailFrom)) detailFrom.focus(); detailFrom=null;
+}
+function paintDetail(fresh){
+  const root=document.getElementById("drawer-root"), s=allSessions().find(x=>x.id===detailId);
+  if(!root) return; if(!s){ closeDetail(); return; }
+  const old=root.querySelector(".dr-body"), y=old&&!fresh?old.scrollTop:0;
+  const list=visibleSessions(), i=list.findIndex(x=>x.id===s.id), prev=i>0?list[i-1]:null, next=i>=0&&i<list.length-1?list[i+1]:null;
+  const st=sStatus(s), ai=s.group==="AI";
+  const body=el("div",{class:"dr-body"},detailBody(s));
+  root.innerHTML="";
+  root.append(el("div",{class:"dr-back",onclick:closeDetail}),
+    el("aside",{class:"drawer",role:"dialog","aria-modal":"true","aria-label":"Session "+s.code},
+      el("div",{class:"dr-head"},
+        el("b",{class:"dr-code"},s.code),el("span",{class:"chip "+(ai?"ai":"ctrl")},ai?"AI":"Control"),el("span",{class:"chip "+ST_CLS[st[0]]},st[1]),
+        el("span",{style:"flex:1"}),
+        el("button",{class:"quiet",disabled:!prev,"aria-label":"Previous session",title:"Previous (←)",onclick:()=>prev&&openDetail(prev.id)},"‹"),
+        el("button",{class:"quiet",disabled:!next,"aria-label":"Next session",title:"Next (→)",onclick:()=>next&&openDetail(next.id)},"›"),
+        el("button",{class:"quiet dr-x","aria-label":"Close",title:"Close (Esc)",onclick:closeDetail},"✕")),
+      body));
+  document.documentElement.classList.add("drawer-open");
+  body.scrollTop=y;
+  document.querySelectorAll(".rt-row").forEach(r=>r.classList.toggle("on",r.dataset.id===s.id));
+  if(fresh) root.querySelector(".dr-x").focus();
+}
+document.addEventListener("keydown",e=>{
+  if(!detailId||document.querySelector("#modal-root .modal")) return;
+  if(e.key==="Escape"){ closeDetail(); return; }
+  if(e.target.closest&&e.target.closest("input,textarea,select")) return;
+  if(e.key==="ArrowLeft"||e.key==="ArrowRight"){ const b=document.querySelector('.drawer [aria-label="'+(e.key==="ArrowLeft"?"Previous":"Next")+' session"]'); if(b&&!b.disabled){ e.preventDefault(); b.click(); } }
+});
+
+function tile(label,value,sub){ return el("div",{},el("span",{class:"label"},label),el("b",{},value),sub?el("span",{class:"small muted"},sub):null); }
+function secHead(title,sub){ return el("div",{class:"sec"},el("h3",{},title),sub?el("p",{class:"small muted"},sub):null); }
+function detailBody(s){
+  const x=d(s), q=s.questionnaire||{};
+  return [
+    el("div",{class:"stats dr-scores"},
+      tile("H1 · Time",s.time_sec!=null?Math.round(s.time_sec)+" s":"—",s.finished?"submitted":"ran out of time"),
+      tile("H2 · Tests passed",(x.tests??"…")+" / 10","Task 1 + Task 2 + Task 3"),
+      tile("H3 · Understanding",(x.under??"?")+" / 10","Q1 "+(x.q1??"?")+" + Q2 "+(x.q2??"?")+" + Q3 "+x.q3+" + change "+(x.mod??"…"))),
+    secHead("H2 · The three tasks","Checked by the computer, so there's nothing to mark. Each test runs their function on one input and compares what it gives back with the right answer. Tests passed is the score."),
+    taskCard(s,"t1",x.g?.t1), taskCard(s,"t2",x.g?.t2), taskCard(s,"t3",x.g?.t3),
+    secHead("H3 · The questions after the tasks","Q1 and Q2 need a person to mark them. Q3 and the code change are scored automatically."),
+    qCard(s,"q1"), qCard(s,"q2"), q3Card(s,x), taskCard(s,"mod",x.g?.mod),
+    secHead("About them",null),
+    el("p",{class:"small muted"},"Python "+(q.python_months??"—")+" months · skill "+(q.python_self_rating??"—")+"/5 · AI use "+(q.ai_tool_use??"—")+"/5 · used Counter before: "+(q.used_counter_before??"—")+
+      " · "+(s.level==="2+"?"two or more courses":"one course")+(s.created_at?" · "+new Date(s.created_at).toLocaleString():"")+(q.hard?" · “"+q.hard+"”":"")),
+    s.group==="AI"? aiCoding(s) : null,
     el("label",{class:"f"},"Notes",textBox("notes-"+s.id,s.notes,v=>{ s.notes=v; saveSoon(s); })),
     el("div",{class:"row"},
-      el("button",{onclick:()=>{ s.excluded=!s.excluded; saveSoon(s); redraw(); }},s.excluded?"Include in results":"Exclude from results"),
-      el("button",{class:"danger",onclick:()=>confirmBox("Delete "+s.code+"?","Only for a participant who asked for their data to be removed. This can't be undone.","Delete",async()=>{ await removeSession(s.id); redraw(); },true)},"Delete"))));
-  return det;
+      el("button",{onclick:()=>{ s.excluded=!s.excluded; saveSoon(s); dataChanged(true); paintDetail(); }},s.excluded?"Include in results":"Exclude from results"),
+      el("button",{class:"danger",onclick:()=>confirmBox("Delete "+s.code+"?","Only for a participant who asked for their data to be removed. This can't be undone.","Delete",async()=>{ await removeSession(s.id); closeDetail(); redraw(); },true)},"Delete"))
+  ];
+}
+
+const TASK_INFO={
+  t1:{title:"Task 1 · Put the lines in order",h:"H2"}, t2:{title:"Task 2 · Find and fix the bug",h:"H2"},
+  t3:{title:"Task 3 · Finish top_word",h:"H2"}, mod:{title:"Code change · the two most common words",h:"H3"} };
+function verdictChip(arr){
+  if(!arr) return el("span",{class:"chip"},"Checking…");
+  const n=arr.reduce((a,b)=>a+b,0), N=arr.length;
+  return n===N? el("span",{class:"chip ok"},"✓ Whole function correct · "+n+"/"+N)
+    : n? el("span",{class:"chip warn"},"Partly correct · "+n+"/"+N) : el("span",{class:"chip bad"},"✗ Not working · 0/"+N);
+}
+function whyZero(arr){
+  if(!arr) return null;
+  if(arr.blank) return "No answer, so every test fails.";
+  if(arr.asGiven) return "Left exactly as given, so it scores 0 (kit rule: not attempted).";
+  const p=(arr.info||[]).map(i=>i.problem).find(Boolean); if(!p) return null;
+  if(p.kind==="time") return "Their code never finished (it kept running), so the tests stopped.";
+  if(p.kind==="syntax") return "Python can't read this code ("+p.name+(p.line?" on line "+p.line:"")+"), so no test could run.";
+  return "Their code stops with "+p.name+(p.line?" on line "+p.line:"")+" before any test runs.";
+}
+function taskCard(s,kind,arr){
+  const I=TASK_INFO[kind], n=arr?arr.reduce((a,b)=>a+b,0):null, N=TESTS[kind].cases.length, why=whyZero(arr);
+  const cls=n==null?"":n===N?" y":n?" w":" n";
+  let shown;
+  if(kind==="t1") shown=orderView(s);
+  else if(kind==="t2") shown=diffView(T2_TEMPLATE,s.tasks?.t2_code||"");
+  else shown=codeView(kind==="t3"?s.tasks?.t3_code:s.understanding?.mod_code);
+  return el("div",{class:"tcard"+cls},
+    el("div",{class:"spread"},el("b",{},I.title),el("span",{class:"row",style:"gap:6px"},el("span",{class:"tag auto"},"Auto · "+I.h),verdictChip(arr))),
+    why? el("p",{class:"small why"},why) : null,
+    shown,
+    arr&&!arr.blank&&!arr.asGiven&&!(arr.info||[]).every(i=>i.problem)? testsTable(kind,arr) : null);
+}
+function testsTable(kind,arr){
+  const info=arr.info||[];
+  return el("table",{class:"tt"},
+    el("thead",{},el("tr",{},el("th",{},""),el("th",{},"Test input"),el("th",{},"Right answer"),el("th",{},"Their function gave"))),
+    el("tbody",{},TESTS[kind].cases.map(([inp,exp],i)=>{ const ok=arr[i]===1, f=info[i]||{};
+      const gave=f.got!=null?f.got:f.error?f.error+" (error)":f.problem?(f.problem.kind==="time"?"didn't finish":"couldn't run"):"…";
+      return el("tr",{class:ok?"y":"n"},el("td",{class:"tt-mark","aria-label":ok?"passed":"failed"},ok?"✓":"✗"),
+        el("td",{},el("code",{},pyShow(inp))),el("td",{},el("code",{},pyShow(exp,kind==="t1"))),el("td",{},el("code",{},gave))); })));
+}
+function codeView(text,marks){
+  const lines=String(text||"").replace(/\n+$/,"").split("\n");
+  if(!String(text||"").trim()) return el("p",{class:"small muted"},"(blank)");
+  return el("pre",{class:"cv"},lines.map((ln,i)=>{ const m=marks&&marks[i]; return el("span",{class:"ln"+(m?" "+m.cls:""),"data-n":m&&m.n!=null?m.n:i+1,title:m&&m.title||null},ln||" "); }));
+}
+const T1_RIGHT=[4,2,5,3,1];
+function orderView(s){
+  const ord=parseOrder(s.tasks?.t1_order);
+  if(!ord) return el("p",{class:"small muted"},"They didn't finish the order ("+(s.tasks?.t1_order||"blank")+").");
+  const right=ord.map((v,i)=>v===T1_RIGHT[i]);
+  return el("div",{class:"stack",style:"gap:8px"},
+    el("div",{class:"ord"},el("span",{class:"label"},"Their order"),ord.map((v,i)=>el("span",{class:"oc "+(right[i]?"y":"n"),title:right[i]?"right place":"wrong place"},v))),
+    el("div",{class:"ord"},el("span",{class:"label"},"Right order"),T1_RIGHT.map(v=>el("span",{class:"oc r"},v))),
+    codeView(buildT1(ord),ord.map((v,i)=>({cls:right[i]?"y":"n",title:right[i]?"In the right place":"Should be line "+T1_RIGHT[i]+" here"}))));
+}
+/* line diff against the original, so the edited line stands out */
+function lineDiff(a,b){
+  const A=a.replace(/\n+$/,"").split("\n"), B=b.replace(/\n+$/,"").split("\n"), L=Array.from({length:A.length+1},()=>new Array(B.length+1).fill(0));
+  for(let i=A.length-1;i>=0;i--) for(let j=B.length-1;j>=0;j--) L[i][j]=A[i]===B[j]?L[i+1][j+1]+1:Math.max(L[i+1][j],L[i][j+1]);
+  const out=[]; let i=0,j=0;
+  while(i<A.length&&j<B.length){ if(A[i]===B[j]){ out.push(["same",B[j],j+1]); i++; j++; } else if(L[i+1][j]>=L[i][j+1]){ out.push(["del",A[i]]); i++; } else { out.push(["add",B[j],j+1]); j++; } }
+  while(i<A.length) out.push(["del",A[i++]]); while(j<B.length){ out.push(["add",B[j],j+1]); j++; }
+  return out;
+}
+function diffView(orig,code){
+  if(!code.trim()) return el("p",{class:"small muted"},"(blank)");
+  const rows=lineDiff(orig,code), changed=rows.filter(r=>r[0]==="add").length;
+  return el("div",{class:"stack",style:"gap:8px"},
+    el("p",{class:"small muted"},"The bug was line 4, ",el("code",{},"if n % 2 == 1:"),", which counts odd numbers. ",
+      changed? "Yellow lines are what they changed; the struck-out line is the original." : "They didn't change any line."),
+    el("pre",{class:"cv"},rows.map(([k,t,n])=>el("span",{class:"ln "+(k==="add"?"add":k==="del"?"del":""),"data-n":k==="del"?"−":n},t||" "))));
+}
+function q3Card(s,x){
+  const u=s.understanding||{}, a=normQ3a(u.q3_line1)==="3 0", b=normQ3b(u.q3_line2)==="a";
+  const row=(lab,their,right,ok)=>el("tr",{class:ok?"y":"n"},el("td",{class:"tt-mark"},ok?"✓":"✗"),el("td",{},lab),el("td",{},el("code",{},their||"(blank)")),el("td",{},el("code",{},right)));
+  return el("div",{class:"tcard"+(x.q3===2?" y":x.q3?" w":" n")},
+    el("div",{class:"spread"},el("b",{},"Q3 · What does this print?"),el("span",{class:"row",style:"gap:6px"},el("span",{class:"tag auto"},"Auto · H3"),
+      el("span",{class:"chip "+(x.q3===2?"ok":x.q3?"warn":"bad")},x.q3+" / 2"))),
+    el("p",{class:"small muted"},"Counter(\"banana\") counts letters, so a appears 3 times and x 0 times; the most common item is a. Spaces, commas, brackets and quotes are ignored when checking."),
+    el("table",{class:"tt"},el("thead",{},el("tr",{},el("th",{},""),el("th",{},"Line"),el("th",{},"They wrote"),el("th",{},"Right answer"))),
+      el("tbody",{},row("First",u.q3_line1,"3 0",a),row("Second",u.q3_line2,"a",b))));
+}
+function qCard(s,q){
+  const G=GUIDE[q], st=qState(s,q), m=s.marks||{}, me=myMarker(), back=()=>{ redraw(); openDetail(s.id); };
+  const stChip= st.k==="final"? el("span",{class:"chip ok"},"Final "+st.v+" / 2") : st.k==="differ"? el("span",{class:"chip bad"},"Markers differ") : el("span",{class:"chip warn"},"Needs marking");
+  const who=r=>el("span",{class:"mk-who"+(m[q+r]!=null?" on":"")},el("i",{class:"pip"+(m[q+r]!=null?" on":"")},r==="A"?"1":"2"),MK(r)+(me===r?" (you)":"")+(m[q+r]!=null?": marked":": not yet"));
+  const both=m[q+"A"]!=null&&m[q+"B"]!=null;
+  return el("div",{class:"tcard"+(st.k==="final"?" y":" need")},
+    el("div",{class:"spread"},el("b",{},G.title),el("span",{class:"row",style:"gap:6px"},el("span",{class:"tag need"},"Marked by you · H3"),stChip)),
+    el("div",{class:"label"},"Their answer"),
+    el("p",{class:"answer"},(s.understanding||{})[q]||"(no answer)"),
+    el("div",{class:"row",style:"gap:14px"},who("A"),who("B")),
+    both? el("p",{class:"small"},"Marker 1 gave "+m[q+"A"]+", marker 2 gave "+m[q+"B"]+(st.k==="final"?(m[q+"A"]===m[q+"B"]?", so the final score is "+st.v+".":"; you settled on "+st.v+"."):". Talk it through and settle the final score.")) :
+      el("p",{class:"small muted"},"Scores stay hidden until both of you have marked, so neither marker is swayed."),
+    el("div",{class:"row"},
+      counted(s)&&me&&m[q+me]==null? el("button",{class:"primary small",onclick:()=>{ closeDetail(); inFlow=true; markStep(me,[[s.id,q]],0,{back}); }},"Mark this answer as "+MK(me).toLowerCase()) : null,
+      st.k==="differ"? el("button",{class:"small",onclick:()=>{ closeDetail(); inFlow=true; settleStep([[s.id,q]],0,{back}); }},"Settle together") : null,
+      counted(s)&&!me&&st.k!=="final"? el("span",{class:"small muted"},"Choose who you are in the marking card to mark here.") : null));
 }
 
 /* kit Section 13: two coders label each AI session from its saved chat */
@@ -1555,54 +1919,90 @@ function aiCoding(s){
     agreeWrap);
 }
 
-/* guided marking */
+/* guided marking: a two-point checklist per question; the score is the number of ticks (same 0/1/2 scale as the kit) */
 const GUIDE={
-  q1:{ title:"Q1 · What was wrong with count_even?", show:s=>s.tasks?.t2_code, label:"Their fixed version",
-    levels:[["2","2","Says it counted odd numbers (remainder 1) and that even numbers have remainder 0"],["1","1","Says what changed, or that it counted the wrong numbers, but not why"],["0","0","Wrong or no answer"]] },
-  q2:{ title:"Q2 · Walk through \"Dog cat dog\"", show:s=>s.tasks?.t3_code, label:"Their Task 3 code",
-    levels:[["2","2","dog = 2, cat = 1, AND returns \"dog\", pointing to the line that picks it"],["1","1","Gets one of those two parts right"],["0","0","Neither part, or no answer"]] }
+  q1:{ title:"Q1 · What was wrong with count_even?", ask:()=>I18N.en.q1p, show:s=>s.tasks?.t2_code, label:"Their fixed version",
+    crit:[["Names the mistake","Says it counted odd numbers (remainder 1) instead of even ones, or that == 1 should be == 0"],
+          ["Explains why the fix works","Says even numbers have remainder 0 when divided by 2, so n % 2 == 0 picks them"]] },
+  q2:{ title:"Q2 · Walk through \"Dog cat dog\"", ask:()=>I18N.en.q2p(), show:s=>s.tasks?.t3_code, label:"Their Task 3 code",
+    crit:[["Counts are right","dog = 2 and cat = 1 (upper and lower case counted together)"],
+          ["Return is right","Gives back \"dog\" and points to the line that picks it"]] }
 };
-let inFlow=false;
+let inFlow=false, flowKeys=null;
+function setKeys(fn){ if(flowKeys) document.removeEventListener("keydown",flowKeys); flowKeys=fn||null; if(fn) document.addEventListener("keydown",fn); }
 function startMarking(rater){
-  inFlow=true;
+  inFlow=true; closeDetail();
   const queue=[];
-  for(const s of allSessions()) if(!s.pilot&&!s.excluded) for(const q of ["q1","q2"]) if((s.marks||{})[q+rater]==null) queue.push([s.id,q]);
+  for(const s of allSessions()) if(counted(s)) for(const q of ["q1","q2"]) if((s.marks||{})[q+rater]==null) queue.push([s.id,q]);
   // shuffle so marking order doesn't follow session order
   for(let i=queue.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [queue[i],queue[j]]=[queue[j],queue[i]]; }
   markStep(rater,queue,0);
 }
-function markStep(rater,queue,i){
+/* the checklist both marking and settling use; calls onSave(score) */
+function checklist(G,onSave,saveLabel,onSkip){
+  const ticks=new Set(), score=el("b",{},"0");
+  const crit=G.crit.map(([title,sub],j)=>el("button",{type:"button",class:"crit","aria-pressed":"false",onclick:()=>toggle(j)},
+    el("span",{class:"box","aria-hidden":"true"},"✓"),el("span",{},el("b",{},title),el("span",{},sub)),el("kbd",{},j+1)));
+  function toggle(j){ ticks.has(j)?ticks.delete(j):ticks.add(j); crit[j].setAttribute("aria-pressed",String(ticks.has(j))); score.textContent=ticks.size; }
+  const save=()=>{ setKeys(null); onSave(ticks.size); };
+  setKeys(e=>{
+    if(document.querySelector("#modal-root .modal")||(e.target.closest&&e.target.closest("input,textarea,select"))) return;
+    if(e.key==="1"||e.key==="2"){ e.preventDefault(); toggle(+e.key-1); }
+    else if(e.key==="Enter"&&!(e.target.closest&&e.target.closest("button:not(.crit)"))){ e.preventDefault(); save(); }
+    else if(onSkip&&(e.key==="s"||e.key==="S")){ e.preventDefault(); setKeys(null); onSkip(); }
+  });
+  return el("div",{class:"stack"},
+    el("span",{class:"f"},"Tick what the answer does"),
+    el("div",{class:"stack",style:"gap:10px"},crit),
+    el("div",{class:"mk-total"},el("span",{class:"label"},"Score"),score,el("span",{class:"muted"},"/ 2"),el("span",{style:"flex:1"}),
+      onSkip? el("button",{onclick:()=>{ setKeys(null); onSkip(); }},"Skip for now") : null,
+      el("button",{class:"primary",onclick:save},saveLabel)),
+    el("p",{class:"small muted keys"},"Keys: ",el("kbd",{},"1")," ",el("kbd",{},"2")," tick, ",el("kbd",{},"Enter")," save",onSkip?[", ",el("kbd",{},"S")," skip"]:null,"."));
+}
+function answerBlock(s,q){
+  const G=GUIDE[q];
+  return el("div",{class:"card stack"},
+    el("div",{class:"label"},"They were asked"),el("p",{class:"small",style:"font-style:italic"},G.ask()),
+    el("div",{class:"label"},G.label),codeView(G.show(s)||""),
+    el("div",{class:"label"},"Their answer"),
+    el("p",{class:"answer big"},(s.understanding||{})[q]||"(no answer)"));
+}
+function markStep(rater,queue,i,opt={}){
   const app=document.getElementById("app"); app.className="wrap"; app.innerHTML="";
+  const back=()=>{ setKeys(null); (opt.back||redraw)(); };
   if(i>=queue.length){
-    app.append(el("div",{class:"stack-lg fade"},el("h1",{},"Marking finished"),el("p",{class:"muted"},"You've marked every answer you hadn't marked yet as marker "+(rater==="A"?"1":"2")+"."),el("div",{},el("button",{class:"primary",onclick:redraw},"Back to results"))));
+    if(opt.back) return back();
+    app.append(el("div",{class:"stack-lg fade"},el("h1",{},"Marking finished"),el("p",{class:"muted"},"You've marked every answer you hadn't marked yet as "+MK(rater).toLowerCase()+"."),el("div",{},el("button",{class:"primary",onclick:back},"Back to results"))));
     return;
   }
-  const [id,q]=queue[i], s=allSessions().find(x=>x.id===id); if(!s) return markStep(rater,queue,i+1);
-  const G=GUIDE[q];
+  const [id,q]=queue[i], s=allSessions().find(x=>x.id===id); if(!s) return markStep(rater,queue,i+1,opt);
   app.append(el("div",{class:"stack-lg fade"},
-    el("div",{class:"spread"},el("div",{class:"label"},"Marker "+(rater==="A"?"1":"2")+" · answer "+(i+1)+" of "+queue.length),el("button",{class:"link",onclick:redraw},"Stop and go back")),
-    el("h1",{},G.title),
-    el("div",{class:"card stack"},el("div",{class:"label"},G.label),pre(G.show(s)||""),el("div",{class:"label"},"Their answer"),
-      el("p",{style:"white-space:pre-wrap;font-size:1.05rem"},(s.understanding||{})[q]||"(no answer)")),
-    el("div",{class:"stack"},el("span",{class:"f"},"Score"),
-      el("div",{class:"stack"},G.levels.map(([v,t,sub])=>el("button",{class:"choice",style:"flex-direction:row;gap:14px;align-items:center",onclick:()=>{
-        s.marks=s.marks||{}; s.marks[q+rater]=+v; const a=s.marks[q+"A"], b=s.marks[q+"B"]; if(a!=null&&a===b) s.marks[q]=a; else if(a!=null&&b!=null) s.marks[q]=null;
-        saveSoon(s); markStep(rater,queue,i+1); }},el("b",{style:"font-size:1.3rem;min-width:22px"},t),el("span",{},sub))))),
-    el("div",{},el("button",{onclick:()=>markStep(rater,queue,i+1)},"Skip for now"))));
+    el("div",{class:"stack",style:"gap:8px"},
+      el("div",{class:"spread"},el("div",{class:"label"},MK(rater)+" · answer "+(i+1)+" of "+queue.length+" · group hidden"),el("button",{class:"link",onclick:back},"Stop and go back")),
+      el("div",{class:"meter"},el("i",{style:"width:"+Math.round(100*i/queue.length)+"%"}))),
+    el("h1",{},GUIDE[q].title),
+    answerBlock(s,q),
+    checklist(GUIDE[q],score=>{
+      s.marks=s.marks||{}; s.marks[q+rater]=score; const a=s.marks[q+"A"], b=s.marks[q+"B"];
+      if(a!=null&&a===b) s.marks[q]=a; else if(a!=null&&b!=null) s.marks[q]=null;
+      saveSoon(s); markStep(rater,queue,i+1,opt); },"Save and next",()=>markStep(rater,queue,i+1,opt))));
   window.scrollTo(0,0);
 }
-function disagreeList(){ const out=[]; for(const s of allSessions()){ const m=s.marks||{}; for(const q of ["q1","q2"]) if(m[q+"A"]!=null&&m[q+"B"]!=null&&m[q+"A"]!==m[q+"B"]&&m[q]==null) out.push([s.id,q]); } return out; }
-function startSettling(){ inFlow=true; settleStep(disagreeList(),0); }
-function settleStep(list,i){
+function disagreeList(){ const out=[]; for(const s of allSessions()){ if(!counted(s)) continue; const m=s.marks||{}; for(const q of ["q1","q2"]) if(m[q+"A"]!=null&&m[q+"B"]!=null&&m[q+"A"]!==m[q+"B"]&&m[q]==null) out.push([s.id,q]); } return out; }
+function startSettling(){ inFlow=true; closeDetail(); settleStep(disagreeList(),0); }
+function settleStep(list,i,opt={}){
   const app=document.getElementById("app"); app.className="wrap"; app.innerHTML="";
-  if(i>=list.length){ app.append(el("div",{class:"stack-lg fade"},el("h1",{},"All settled"),el("div",{},el("button",{class:"primary",onclick:redraw},"Back to results")))); return; }
-  const [id,q]=list[i], s=allSessions().find(x=>x.id===id), G=GUIDE[q], m=s.marks;
+  const back=()=>{ setKeys(null); (opt.back||redraw)(); };
+  if(i>=list.length){ if(opt.back) return back(); app.append(el("div",{class:"stack-lg fade"},el("h1",{},"All settled"),el("div",{},el("button",{class:"primary",onclick:back},"Back to results")))); return; }
+  const [id,q]=list[i], s=allSessions().find(x=>x.id===id); if(!s) return settleStep(list,i+1,opt);
+  const m=s.marks;
   app.append(el("div",{class:"stack-lg fade"},
-    el("div",{class:"spread"},el("div",{class:"label"},"Disagreement "+(i+1)+" of "+list.length),el("button",{class:"link",onclick:redraw},"Stop and go back")),
-    el("h1",{},G.title),
-    el("div",{class:"card stack"},el("div",{class:"label"},G.label),pre(G.show(s)||""),el("div",{class:"label"},"Their answer"),el("p",{style:"white-space:pre-wrap"},(s.understanding||{})[q]||"(no answer)")),
-    el("p",{},"Marker 1 gave ",el("b",{},m[q+"A"]),", marker 2 gave ",el("b",{},m[q+"B"]),". Talk it through and choose the final score."),
-    el("div",{class:"stack"},G.levels.map(([v,t,sub])=>el("button",{class:"choice",style:"flex-direction:row;gap:14px;align-items:center",onclick:()=>{ s.marks[q]=+v; saveSoon(s); settleStep(list,i+1); }},el("b",{style:"font-size:1.3rem;min-width:22px"},t),el("span",{},sub))))));
+    el("div",{class:"spread"},el("div",{class:"label"},"Disagreement "+(i+1)+" of "+list.length+" · group hidden"),el("button",{class:"link",onclick:back},"Stop and go back")),
+    el("h1",{},GUIDE[q].title),
+    answerBlock(s,q),
+    el("div",{class:"hint"},"Marker 1 gave ",el("b",{},m[q+"A"]),", marker 2 gave ",el("b",{},m[q+"B"]),". Talk it through, then tick what you agree the answer does."),
+    checklist(GUIDE[q],score=>{ s.marks[q]=score; saveSoon(s); settleStep(list,i+1,opt); },"Save final score")));
+  window.scrollTo(0,0);
 }
 
 /* downloads */
@@ -1710,10 +2110,10 @@ function moreCard(A,C){
 /* ---------- routing ---------- */
 const ROUTES={setup:vSetup,results:vResults,analysis:vAnalysis,admin:vAdmin};
 function currentRoute(){ const h=location.hash.slice(1); if(!ROUTES[h]) return "setup"; if((h==="results"||h==="analysis")&&!isAdmin()) return "admin"; return h; }
-function route(){ inFlow=false; participantMode=false; setProgress(null); const r=currentRoute(); if(location.hash.slice(1)!==r && r==="admin") history.replaceState(null,"","#admin"); paintBar(); ROUTES[r](); }
+function route(){ inFlow=false; setKeys(null); if(currentRoute()!=="results") closeDetail(); participantMode=false; setProgress(null); const r=currentRoute(); if(location.hash.slice(1)!==r && r==="admin") history.replaceState(null,"","#admin"); paintBar(); ROUTES[r](); }
 function redraw(){ document.getElementById("modal-root").innerHTML=""; route(); }
 let pending=false;
-function typing(){ const a=document.activeElement; return a&&a.closest&&a.closest("#app")&&/^(INPUT|TEXTAREA)$/.test(a.tagName); }
+function typing(){ const a=document.activeElement; return a&&a.closest&&a.closest("#app,#drawer-root")&&/^(INPUT|TEXTAREA)$/.test(a.tagName); }
 document.addEventListener("focusout",()=>setTimeout(()=>{ if(pending&&!typing()){ pending=false; dataChanged(); } },0));
 function dataChanged(){
   if(participantMode) return;
