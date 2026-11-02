@@ -50,6 +50,12 @@ Participants sign consent with their initials (kept in a separate *Consents* tab
 
 Tick **Practice run** for pilots; practice rows are never counted.
 
+## Participants in mainland China
+- The page, its fonts and its code libraries are all served from this repository (see `vendor/LICENSES.md`), so nothing loads from Google Fonts or public CDNs.
+- Answers are sent to the Google Sheet through `script.google.com`, which is blocked in mainland China without a VPN. Sessions run on the group's own laptops (with VPN) are not affected.
+- If a participant on their own device can't reach the sheet, their finish screen keeps trying and, after a few seconds, offers **Copy my answers**. They send you the text (for example on WeChat); in **Admin → Results → Backup and import → Answers sent by message**, paste it and choose **Add pasted answers**. A session that later arrives twice is only stored once.
+- Before sending links, open one on a phone using mobile data without a VPN to see what participants will see.
+
 ## Marking and results
 
 Open **Results** and enter the group key once on each experimenter's device.
@@ -63,7 +69,8 @@ Open **Results** and enter the group key once on each experimenter's device.
 In Apps Script: **Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy**. The web-app URL stays the same.
 
 ## Files
-- `index.html`: the study app (participant flow, marking, analysis, auto-grading with Skulpt in the browser)
+- `index.html`: the study app (participant flow in English and 中文, marking, analysis, auto-grading with Skulpt in the browser)
+- `vendor/`, `fonts/`: libraries and fonts hosted here so the page loads in mainland China
 - `config.js`: the Google Sheet web-app address
 - `apps-script/Code.gs`: the Google Sheet back end (Sessions, Consents, Summary)
 
