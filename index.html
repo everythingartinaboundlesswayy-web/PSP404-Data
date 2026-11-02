@@ -922,9 +922,16 @@ function joinFromLink(){
 }
 function vSetup(){
   const app=document.getElementById("app"); app.className="wrap"; app.innerHTML="";
-  const st={code:nextCode(),group:"",level:"",ok:false,pilot:false,model:""};
+  // the form remembers what you've entered until a session starts or a link is made
+  const FORM_KEY="psp404-setup-form";
+  const st=Object.assign({code:"",group:"",level:"",pilot:false,model:""}, lsGet(FORM_KEY,{}));
+  const used=c=>allSessions().some(s=>s.code===c&&!s.pilot) || lsGet(ISSUED_KEY,[]).includes(c);
+  if(!st.code || used(st.code)) st.code=nextCode();
+  const keep=()=>lsSet(FORM_KEY,st);
+  const clearForm=()=>{ try{ localStorage.removeItem(FORM_KEY); }catch(e){} };
   const err=el("p",{class:"small",style:"color:var(--bad)",role:"alert"});
-  const modelRow=el("label",{class:"f",hidden:true},"AI app they'll use (optional, e.g. ChatGPT app)",el("input",{type:"text",id:"s-model",placeholder:"e.g. ChatGPT app",style:"max-width:260px",oninput:e=>st.model=e.target.value.trim()}));
+  const modelRow=el("label",{class:"f",hidden:true},"AI app they'll use (optional, e.g. ChatGPT app)",el("input",{type:"text",id:"s-model",value:st.model||"",placeholder:"e.g. ChatGPT app",style:"max-width:260px",oninput:e=>{ st.model=e.target.value.trim(); keep(); }}));
+  modelRow.hidden = st.group!=="AI";
   const check=()=>{
     if(!/^[A-Za-z0-9_-]{1,20}$/.test(st.code)) return err.textContent="Use a short code like P07.";
     if(!st.pilot && (allSessions().some(s=>s.code===st.code&&!s.pilot) || lsGet(ISSUED_KEY,[]).includes(st.code))) return err.textContent=st.code+" is already used.";
@@ -942,7 +949,7 @@ function vSetup(){
       el("div",{class:"label"},"Link for "+st.code+" · "+(st.group==="AI"?"AI group":"Control group")+" · "+(st.level==="1"?"one course":"two or more courses")),
       el("h2",{},"Send this to "+st.code),
       el("p",{class:"small muted"},"Only send it to this one person. When they finish, their answers appear in the Google Sheet and on the Results page."),
-      box, el("div",{class:"row",style:"justify-content:flex-end"},el("button",{onclick:()=>{ root.innerHTML=""; vSetup(); }},"Done"),copy))));
+      box, el("div",{class:"row",style:"justify-content:flex-end"},el("button",{onclick:()=>{ root.innerHTML=""; clearForm(); vSetup(); }},"Done"),copy))));
   };
   const start=()=>{
     if(!/^[A-Za-z0-9_-]{1,20}$/.test(st.code)) return err.textContent="Use a short code like P07.";
@@ -952,21 +959,21 @@ function vSetup(){
     const now=Date.now();
     draft={ id:st.code+"_"+now.toString(36), code:st.code, group:st.group, level:st.level, pilot:st.pilot, model:st.group==="AI"?st.model:"", created_at:now, step:"consent",
       tasks:{t1_order:"",t1_seq:[],t2_code:T2_TEMPLATE,t3_code:T3_TEMPLATE}, understanding:{}, questionnaire:{} };
-    saveDraft(); show();
+    clearForm(); saveDraft(); show();
   };
   app.append(el("div",{class:"stack-lg fade"},
     el("div",{class:"stack"},el("h1",{},"Run a session"),el("p",{class:"muted"},"Fill this in, then either hand this device to the participant or send them their own link.")),
     draft&&draft.step!=="done"? el("div",{class:"hint warn spread"},el("span",{},"Session "+draft.code+" wasn't finished."),
       el("div",{class:"row"},el("button",{class:"primary",onclick:show},"Continue it"),el("button",{class:"danger",onclick:()=>confirmBox("Delete "+draft.code+"'s answers?","The unfinished session is removed from this device.","Delete",()=>{ clearDraft(); vSetup(); },true)},"Delete"))) : null,
     el("div",{class:"card stack-lg"},
-      el("label",{class:"f"},"Participant code",el("input",{type:"text",id:"s-code",value:st.code,style:"max-width:180px;font-family:var(--mono)",oninput:e=>st.code=e.target.value.trim()})),
+      el("label",{class:"f"},"Participant code",el("input",{type:"text",id:"s-code",value:st.code,style:"max-width:180px;font-family:var(--mono)",oninput:e=>{ st.code=e.target.value.trim(); keep(); }})),
       el("div",{class:"stack"},el("span",{class:"f"},"Group"),el("span",{class:"small muted"},"Take the next entry from your randomisation list."),
-        choices([["AI","AI group","Uses their own AI"],["Control","Control group","No AI"]],"",v=>{ st.group=v; modelRow.hidden=v!=="AI"; })),
+        choices([["AI","AI group","Uses their own AI"],["Control","Control group","No AI"]],st.group,v=>{ st.group=v; modelRow.hidden=v!=="AI"; keep(); })),
       modelRow,
       el("div",{class:"stack"},el("span",{class:"f"},"Python courses completed"),
-        choices([["1","One"],["2+","Two or more"]],"",v=>st.level=v)),
+        choices([["1","One"],["2+","Two or more"]],st.level,v=>{ st.level=v; keep(); })),
       el("p",{class:"small muted"},"The participant reads the information sheet and signs with their initials on the first screen."),
-      el("label",{class:"check"},el("input",{type:"checkbox",id:"s-pilot",onchange:e=>st.pilot=e.target.checked}),
+      el("label",{class:"check"},el("input",{type:"checkbox",id:"s-pilot",checked:!!st.pilot,onchange:e=>{ st.pilot=e.target.checked; keep(); }}),
         el("span",{class:"muted"},"Practice run (not counted in the results)"))),
     err, el("div",{class:"row"},el("button",{class:"primary big",onclick:start},"Start on this device"),el("button",{class:"big",onclick:makeLink},"Make a link to send")),
     el("p",{class:"small muted"},"Make a link to send gives this participant their own link with their code and group built in. They open it on their own phone or laptop and go straight to the consent screen."),
