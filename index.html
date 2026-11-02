@@ -192,6 +192,14 @@ td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
 .countdown b{font-size:min(38vw,220px);font-weight:900;color:var(--brand);line-height:1}
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:40}
 .calm h1{font-weight:700}
+.langswitch{display:inline-flex;border:2px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.langswitch button{border:0;border-radius:0;box-shadow:none;padding:5px 11px;font-size:.88rem;background:transparent;color:var(--muted)}
+.langswitch button:active:not(:disabled){transform:none;box-shadow:none}
+.langswitch button[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink)}
+dl.facts{display:grid;grid-template-columns:minmax(110px,max-content) 1fr;gap:10px 16px;margin:0}
+dl.facts dt{font-weight:800}
+dl.facts dd{margin:0;color:var(--ink)}
+@media (max-width:520px){dl.facts{grid-template-columns:1fr;gap:2px}dl.facts dd{margin-bottom:10px}}
 .calm button.primary{text-transform:none;letter-spacing:.01em}
 .calm .card{border-color:var(--line)}
 @media (prefers-reduced-motion:no-preference){
@@ -499,11 +507,11 @@ function sessionOptions(){
         el("button",{class:"danger",onclick:discard},"Stop and discard"),
         el("button",{onclick:close},"Cancel")))));
 }
-function confirmBox(title,text,okLabel,onOk,danger){
+function confirmBox(title,text,okLabel,onOk,danger,backLabel){
   const root=document.getElementById("modal-root"); const close=()=>root.innerHTML="";
   const ok=el("button",{class:danger?"danger":"primary",onclick:()=>{ close(); onOk(); }},okLabel);
   root.innerHTML=""; root.appendChild(el("div",{class:"modal",role:"dialog","aria-modal":"true"},
-    el("div",{class:"card stack fade"},el("h2",{},title),el("p",{class:"muted"},text),el("div",{class:"row",style:"justify-content:flex-end"},el("button",{onclick:close},"Go back"),ok))));
+    el("div",{class:"card stack fade"},el("h2",{},title),el("p",{class:"muted"},text),el("div",{class:"row",style:"justify-content:flex-end"},el("button",{onclick:close},backLabel||"Go back"),ok))));
   ok.focus();
 }
 function fmtTime(s){ s=Math.max(0,Math.round(s)); return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0"); }
@@ -524,7 +532,7 @@ function paintBar(extra){
   const bar=document.getElementById("bar"); bar.innerHTML="";
   if(participantMode){
     const opts= draft&&draft.remote ? el("span",{class:"pill small"},draft.code) : el("button",{type:"button",class:"small","aria-label":"Experimenter options",title:"Experimenter options",onclick:sessionOptions},(draft?draft.code:"")+" ⋯");
-    bar.append(el("div",{class:"brand"},mascot("hi",34),"Coding study"), el("div",{class:"row"},extra||null,opts));
+    bar.append(el("div",{class:"brand"},mascot("hi",34),t("brand")), el("div",{class:"row"},extra||null,langSwitch(),opts));
     return;
   }
   const r=currentRoute();
@@ -543,7 +551,7 @@ function statusInner(){
 function saveStatus(){ return el("div",{class:"savestatus"},statusInner()); }
 function refreshStatus(){ document.querySelectorAll(".savestatus").forEach(n=>{ n.innerHTML=""; const c=statusInner(); if(c) n.appendChild(c); }); }
 
-/* ---------- participant flow ---------- */
+/* ---------- participant flow (English / 中文) ---------- */
 const CONTACT_EMAIL = ""; // group contact email shown on the consent screen
 let draft=lsGet(DRAFT_KEY,null), tick=null;
 const STEPS=["consent","welcome","t1","t2","t3","break1","q1","q2","q3","change","break2","about","done"];
@@ -551,10 +559,148 @@ function saveDraft(){ if(draft) lsSet(DRAFT_KEY,draft); }
 function clearDraft(){ draft=null; try{ localStorage.removeItem(DRAFT_KEY); }catch(e){} }
 function go(step){ draft.step=step; saveDraft(); show(); }
 const reduceMotion=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
+const defaultLang=()=>{ try{ return /^zh/i.test(navigator.language||"")?"zh":"en"; }catch(e){ return "en"; } };
+
+/* all participant wording, in both languages */
+const B=x=>el("b",{},x), C=x=>el("code",{},x);
+const I18N={
+ en:{
+  brand:"Coding study", name:"Bao", mascotLabel:"Bao the panda, the study guide",
+  hi:"Hi! I'm Bao. Here's a quick look at the study before we start.",
+  about:"About this study",
+  intro:"We're PSP404TC students. We're studying how AI coding assistants affect how well students solve short Python tasks and understand their own code.",
+  rows:code=>[
+    ["What you'll do","3 short Python tasks (10 minutes), a few questions about your code, then 4 questions about you. About 18 minutes."],
+    ["Groups","You've been placed at random in one of two groups. One group may use their own AI assistant; the other may not use AI or the internet."],
+    ["Your data","We save your answers and times under the code "+code+", never your name. AI group: we'll ask to see your AI chat at the end (without your name). Your initials are stored separately from your answers."],
+    ["Your choice","Taking part is voluntary. You can stop at any time. To remove your answers later, quote "+code+" before we start the analysis. It doesn't affect any course mark."],
+    ["Risk","No more than everyday risk."],
+    ["Contact", CONTACT_EMAIL || "Ask the experimenter for the group's email."]],
+  consent:"Your consent", adult:"I am 18 or older.", course:"I have completed at least one Python course.", agree:"I have read the above and agree to take part.",
+  initials:"Type your initials to sign", initialsHint:"Letters only, e.g. JK", date:"Date",
+  yes:"I agree, let's start", no:"I don't want to take part",
+  declineTitle:"Not taking part?", declineText:"That's completely fine. Nothing you've typed is kept.", declineOk:"Yes, stop here", back:"Back", goBack:"Go back",
+  bye:"No problem at all. Thanks for stopping by!", byeNote:"Please let the experimenter know.",
+  aiHero:"You can use your own AI assistant, like ChatGPT on your phone or in another tab. Copy a task and paste it in, any way you like.",
+  ctrlHero:"This part is just you: no AI, search engines or websites, please.",
+  welcomeTitle:"Three short tasks, 10 minutes",
+  welcomeP1:"Put some lines in order, fix a bug, then finish a function. You can move between the three tasks freely.",
+  welcomeP2:"There's no Run button and no marking on screen, so just write what you think is right. Nobody expects perfect code.",
+  start10:"Start the 10 minutes",
+  timeLeft:"Time left", oneMin:"1 minute left",
+  taskOf:n=>"Task "+n+" of 3", copy:"Copy this task", copied:"Copied. Paste it into your AI", copyFail:"Couldn't copy, select the text instead",
+  nextTask:"Next task", submitTasks:"Submit tasks", submitTitle:"Submit your three tasks?", submitText:"You can't change them after this, and the timer stops.", submit:"Submit",
+  t1title:"Put the lines in order", t1lead:()=>["These lines make a function that returns the ",B("average")," of a list of numbers. Tap them in the right order. The indentation is already right."],
+  yourFunction:"Your function", clear:"Clear", t1hint:"Tap a line in your function to send it back. Drag lines to swap them around.", lines:"Lines", addLine:n=>"Add line "+n, removeLine:n=>"Remove line "+n,
+  t2title:"Find and fix the bug", t2lead:()=>["This function should count the ",B("even")," numbers in a list. For example, ",C("count_even([1, 2, 3, 4])")," should return 2. One line is wrong."],
+  t2hint:"Tap a line to edit it, then press Enter. Edited lines turn yellow.", undo:"Undo my changes", editLine:n=>"Edit line "+n, lineLabel:(n,ed)=>"Line "+n+(ed?", edited":"")+". Tap to edit.",
+  t3title:"Finish the function", t3lead:()=>["Finish ",C("top_word(text)")," so it returns the word that appears most often. Treat upper and lower case as the same and return the word in lower case. Words are separated by spaces, with no punctuation and no ties."],
+  t3example:()=>["Example: ",C('top_word("The cat saw the dog")')," returns ",C('"the"'),". Use ",B("Counter"),": the tip card shows how."],
+  indent:"Indent ⇥", newIndented:"New indented line",
+  tipTitle:"Tip card: how Counter works", tipIntro:()=>[B("Counter")," counts how many times each item appears."], tipNever:"# never appeared",
+  tipMost:()=>[C("most_common(n)")," gives a list of (item, count) pairs, most common first."],
+  heroDone:"That's the tasks done. Thank you.", heroTime:"That's the 10 minutes. Your answers are saved.",
+  justYou:"Now, just you",
+  b1p1:"The next four questions are about the code you just wrote. They help us see how you understand it on your own, so please close any AI app or tab now and keep it closed until the end.",
+  b1p2:"There's no timer here. Take your time, answer in your own words, and it's completely fine to say you're not sure.",
+  ready:"I'm ready",
+  qOf:i=>"Question "+i+" of 4 · on your own, no AI",
+  q1title:"What was wrong with count_even?", q1p:"In your own words, what was the mistake in the original function, and why does your fix work?",
+  yourFixed:"Your fixed version", yourAnswer:"Your answer",
+  q2title:"Walk through your Task 3 code", q2p:()=>["Imagine your function gets the text ",C('"Dog cat dog"'),". What does it count, and what does it give back? Which line picks the answer?"], yourT3:"Your Task 3 code",
+  q3title:"What does this print?", q3p:"This small piece of code is the same for everyone. What would the two print lines show? Your best guess is fine.",
+  first:"First line prints", second:"Second line prints",
+  chTitle:"Change your code", chp:()=>["Last one. Change your Task 3 function so it gives back a ",B("list of the two most common words"),", most common first. Your code is already in the box, so you only need to change it."],
+  next:"Next", finishPart:"Finish this part",
+  almost:"Almost there!", lastBit:"Last bit: four questions about you", tapAnswers:"Tap your answers. It takes about a minute.", cont:"Continue",
+  aboutYou:"About you", fourQ:"Four quick questions",
+  a1:"1. Roughly how many months have you been using Python?", a2:"2. How good are you at Python?", a2s:"1 = beginner, 5 = confident",
+  a3:"3. How often do you use AI tools like ChatGPT when you code?", a3s:"1 = never, 5 = almost always",
+  a4:"4. Had you used Python's Counter before today?", ansYes:"Yes", ansNo:"No", ansUnsure:"Not sure",
+  hard:"Anything that made today hard? (optional)",
+  errMonths:"Please enter roughly how many months you've used Python.", errQs:"Please answer questions 2, 3 and 4.",
+  finish:"Finish", saving:"Saving…",
+  allDone:"All done. Thank you!", tellExp:"Please let the experimenter know you've finished.",
+  yourCode:code=>["Your participant code is ",B(code),". Quote it if you'd like your answers removed later."],
+  upDevice:"Saved on this device.", upFail:"Not sent yet: the connection dropped. Please keep this page open; it will try again.",
+  upSending:"Sending your answers…", upSent:"Your answers have been sent. You can close this page.",
+  already:"You've already taken part", alreadyNote:"Thank you! There's nothing more to do."
+ },
+ zh:{
+  brand:"编程研究", name:"小宝", mascotLabel:"熊猫小宝，本研究的向导",
+  hi:"你好！我是小宝。开始之前，先简单介绍一下这项研究。",
+  about:"关于本研究",
+  intro:"我们是 PSP404TC 课程的学生，正在研究 AI 编程助手如何影响学生完成简短 Python 任务的表现，以及他们对自己代码的理解。",
+  rows:code=>[
+    ["你需要做什么","3 个简短的 Python 任务（10 分钟），几个关于你代码的问题，然后是 4 个关于你的问题。总共约 18 分钟。"],
+    ["分组","你已被随机分到两组中的一组。一组可以使用自己的 AI 助手；另一组不能使用 AI 或网络。"],
+    ["你的数据","我们只用编号 "+code+" 保存你的答案和用时，绝不记录你的姓名。AI 组：结束时我们会请你出示与 AI 的对话（不显示姓名）。你的姓名缩写与答案分开保存。"],
+    ["自愿参加","参加完全自愿，你可以随时停止。如需删除你的答案，请在我们开始分析数据前提供编号 "+code+"。这不会影响任何课程成绩。"],
+    ["风险","不超过日常生活中的风险。"],
+    ["联系方式", CONTACT_EMAIL || "请向实验人员索取小组的邮箱。"]],
+  consent:"你的同意", adult:"我已年满 18 岁。", course:"我至少修过一门 Python 课程。", agree:"我已阅读以上内容，并同意参加。",
+  initials:"输入你的姓名拼音缩写作为签名", initialsHint:"只用字母，例如 ZW", date:"日期",
+  yes:"我同意，开始吧", no:"我不想参加",
+  declineTitle:"不参加了吗？", declineText:"完全没问题。你填写的内容都不会被保存。", declineOk:"是的，到此为止", back:"返回", goBack:"返回",
+  bye:"没关系，感谢你的关注！", byeNote:"请告诉实验人员。",
+  aiHero:"你可以使用自己的 AI 助手，例如手机上或另一个标签页里的 ChatGPT。复制任务粘贴进去，怎么用都可以。",
+  ctrlHero:"这一部分请独立完成：不要使用 AI、搜索引擎或任何网站。",
+  welcomeTitle:"三个简短任务，共 10 分钟",
+  welcomeP1:"把几行代码排好顺序，修复一个错误，再补全一个函数。三个任务之间可以随意切换。",
+  welcomeP2:"这里没有“运行”按钮，屏幕上也不会判断对错，写下你认为正确的答案就好。没有人要求代码完美。",
+  start10:"开始 10 分钟计时",
+  timeLeft:"剩余时间", oneMin:"还剩 1 分钟",
+  taskOf:n=>"任务 "+n+" / 3", copy:"复制这个任务", copied:"已复制，粘贴到你的 AI 里吧", copyFail:"无法复制，请手动选中文字",
+  nextTask:"下一个任务", submitTasks:"提交任务", submitTitle:"提交这三个任务吗？", submitText:"提交后就不能再修改，计时也会停止。", submit:"提交",
+  t1title:"把代码行排好顺序", t1lead:()=>["这些代码行组成一个函数，返回一组数字的",B("平均值"),"。请按正确的顺序点击它们。缩进已经是正确的。"],
+  yourFunction:"你的函数", clear:"清空", t1hint:"点击函数里的某一行可以把它放回去；拖动可以调整顺序。", lines:"代码行", addLine:n=>"添加第 "+n+" 行", removeLine:n=>"移除第 "+n+" 行",
+  t2title:"找出并修复错误", t2lead:()=>["这个函数应该统计列表中",B("偶数"),"的个数。例如 ",C("count_even([1, 2, 3, 4])")," 应该返回 2。其中有一行是错的。"],
+  t2hint:"点击某一行即可编辑，然后按回车。修改过的行会变成黄色。", undo:"撤销我的修改", editLine:n=>"编辑第 "+n+" 行", lineLabel:(n,ed)=>"第 "+n+" 行"+(ed?"，已修改":"")+"。点击编辑。",
+  t3title:"补全这个函数", t3lead:()=>["补全 ",C("top_word(text)"),"，让它返回出现次数最多的单词。大小写视为相同，返回小写形式。单词之间用空格分隔，没有标点，也不会出现并列。"],
+  t3example:()=>["例如：",C('top_word("The cat saw the dog")')," 返回 ",C('"the"'),"。请使用 ",B("Counter"),"，提示卡里有用法。"],
+  indent:"缩进 ⇥", newIndented:"换行并缩进",
+  tipTitle:"提示卡：Counter 的用法", tipIntro:()=>[B("Counter")," 会统计每个元素出现的次数。"], tipNever:"# 从未出现",
+  tipMost:()=>[C("most_common(n)")," 返回由 (元素, 次数) 组成的列表，次数最多的排在最前。"],
+  heroDone:"任务完成了，谢谢你！", heroTime:"10 分钟到了，你的答案已保存。",
+  justYou:"接下来，请独立完成",
+  b1p1:"接下来的四个问题都关于你刚写的代码，用来了解你自己对代码的理解。所以现在请关闭所有 AI 应用或标签页，并保持关闭直到结束。",
+  b1p2:"这部分没有计时。慢慢来，用自己的话回答；不确定也完全没关系。",
+  ready:"我准备好了",
+  qOf:i=>"问题 "+i+" / 4 · 独立完成，不使用 AI",
+  q1title:"count_even 哪里出错了？", q1p:"用你自己的话说说：原来的函数错在哪里？你的修改为什么有效？",
+  yourFixed:"你修改后的版本", yourAnswer:"你的回答",
+  q2title:"逐步讲讲你的任务 3 代码", q2p:()=>["假设你的函数收到文本 ",C('"Dog cat dog"'),"。它会统计出什么？返回什么？是哪一行选出了答案？"], yourT3:"你的任务 3 代码",
+  q3title:"这段代码会输出什么？", q3p:"这段小代码每个人都一样。两行 print 会分别输出什么？写下你的最佳猜测即可。",
+  first:"第一行输出", second:"第二行输出",
+  chTitle:"修改你的代码", chp:()=>["最后一题。修改你的任务 3 函数，让它返回",B("出现次数最多的两个单词组成的列表"),"，次数最多的排在前面。你的代码已经在框里了，只需要修改即可。"],
+  next:"下一题", finishPart:"完成这一部分",
+  almost:"快完成了！", lastBit:"最后：四个关于你的问题", tapAnswers:"点选你的答案，大约一分钟。", cont:"继续",
+  aboutYou:"关于你", fourQ:"四个简单问题",
+  a1:"1. 你大约使用 Python 多少个月了？", a2:"2. 你的 Python 水平如何？", a2s:"1 = 初学者，5 = 很有把握",
+  a3:"3. 写代码时，你多常使用 ChatGPT 之类的 AI 工具？", a3s:"1 = 从不，5 = 几乎总是",
+  a4:"4. 在今天之前，你用过 Python 的 Counter 吗？", ansYes:"用过", ansNo:"没用过", ansUnsure:"不确定",
+  hard:"今天有什么让你觉得困难的地方吗？（选填）",
+  errMonths:"请填写你大约使用 Python 的月数。", errQs:"请回答第 2、3、4 题。",
+  finish:"完成", saving:"正在保存…",
+  allDone:"全部完成，谢谢你！", tellExp:"请告诉实验人员你已完成。",
+  yourCode:code=>["你的参与编号是 ",B(code),"。以后如需删除你的答案，请提供这个编号。"],
+  upDevice:"已保存在这台设备上。", upFail:"尚未发送：网络连接中断。请保持此页面打开，系统会自动重试。",
+  upSending:"正在发送你的答案…", upSent:"你的答案已发送，可以关闭此页面了。",
+  already:"你已经参加过了", alreadyNote:"谢谢！无需再做任何事。"
+ }
+};
+const LANG=()=> (draft&&draft.lang==="zh") ? "zh" : "en";
+function t(k,...a){ const v=(I18N[LANG()][k]!==undefined)? I18N[LANG()][k] : I18N.en[k]; return typeof v==="function"? v(...a) : v; }
+function langSwitch(){
+  return el("div",{class:"langswitch",role:"group","aria-label":"Language · 语言"},
+    [["en","EN"],["zh","中文"]].map(([v,lab])=>el("button",{type:"button","aria-pressed":String(LANG()===v),onclick:()=>{ if(LANG()===v) return; draft.lang=v; saveDraft(); show(); }},lab)));
+}
 
 function show(){
   clearInterval(tick);
-  if(!draft){ participantMode=false; setProgress(null); return route(); }
+  if(!draft){ participantMode=false; setProgress(null); document.documentElement.lang="en"; return route(); }
+  if(!draft.lang){ draft.lang=defaultLang(); saveDraft(); }
+  document.documentElement.lang = LANG()==="zh" ? "zh-CN" : "en";
   participantMode = draft.step!=="done" || !!draft.remote;
   const i=Math.max(0,STEPS.indexOf(draft.step));
   setProgress(draft.step==="done"?null:i/(STEPS.length-1));
@@ -566,24 +712,31 @@ function screen(...kids){ const app=document.getElementById("app"); app.classNam
 function calmScreen(...kids){ screen(...kids); document.querySelector("#app>div").classList.add("calm"); }
 function svgNode(markup){ const t=document.createElement("template"); t.innerHTML=markup.trim(); return t.content.firstChild; }
 
-/* the mascot: an original little code robot with brace arms */
+/* the guide: an original giant panda (not any named or branded character) */
 function mascot(mood, size){
-  const eyes = mood==="cheer" ? '<path d="M41 58 q7 -9 14 0 M65 58 q7 -9 14 0" fill="none" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>'
-    : mood==="think" ? '<circle cx="50" cy="55" r="5.5" fill="var(--ink)"/><circle cx="74" cy="55" r="5.5" fill="var(--ink)"/><circle cx="52" cy="53" r="1.8" fill="#fff"/><circle cx="76" cy="53" r="1.8" fill="#fff"/>'
-    : '<circle cx="48" cy="58" r="6" fill="var(--ink)"/><circle cx="72" cy="58" r="6" fill="var(--ink)"/><circle cx="50" cy="56" r="2" fill="#fff"/><circle cx="74" cy="56" r="2" fill="#fff"/>';
-  const mouth = mood==="cheer" ? '<path d="M50 68 q10 13 20 0 z" fill="var(--coral)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/>'
-    : mood==="think" ? '<path d="M54 73 h12" stroke="var(--ink)" stroke-width="3.5" stroke-linecap="round"/>'
-    : '<path d="M51 70 q9 8 18 0" fill="none" stroke="var(--ink)" stroke-width="3.5" stroke-linecap="round"/>';
-  const armY = mood==="cheer" ? 44 : 80;
-  const n = svgNode('<svg class="mascot '+(reduceMotion()?"":"bob")+'" viewBox="0 0 120 120" role="img" aria-label="Pip, the study mascot" style="'+(size?"width:"+size+"px;height:"+size+"px":"")+'">'+
-    '<ellipse cx="60" cy="113" rx="32" ry="5" fill="var(--line)"/>'+
-    '<line x1="60" y1="24" x2="60" y2="11" stroke="var(--brand-dark)" stroke-width="4" stroke-linecap="round"/><circle cx="60" cy="9" r="6.5" fill="var(--sun)" stroke="var(--sun-dark)" stroke-width="2"/>'+
-    '<rect x="18" y="22" width="84" height="84" rx="30" fill="var(--brand)" stroke="var(--brand-dark)" stroke-width="3"/>'+
-    '<rect x="29" y="36" width="62" height="50" rx="20" fill="#fff"/>'+ eyes + mouth +
-    '<circle cx="38" cy="72" r="4.5" fill="var(--coral)" opacity=".45"/><circle cx="82" cy="72" r="4.5" fill="var(--coral)" opacity=".45"/>'+
-    '<text x="0" y="'+armY+'" style="font-family:var(--mono);font-size:36px;font-weight:700" fill="var(--sun-dark)">{</text>'+
-    '<text x="99" y="'+armY+'" style="font-family:var(--mono);font-size:36px;font-weight:700" fill="var(--sun-dark)">}</text></svg>');
-  return n;
+  const K="#23243a";
+  const eyes = mood==="cheer"
+    ? '<path d="M38 61 q6 -7 12 0 M70 61 q6 -7 12 0" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round"/>'
+    : mood==="think"
+    ? '<circle cx="46" cy="58" r="5" fill="#fff"/><circle cx="74" cy="58" r="5" fill="#fff"/><circle cx="47.5" cy="56.5" r="2.4" fill="'+K+'"/><circle cx="75.5" cy="56.5" r="2.4" fill="'+K+'"/>'
+    : '<circle cx="45" cy="60" r="5.2" fill="#fff"/><circle cx="75" cy="60" r="5.2" fill="#fff"/><circle cx="45.6" cy="60.6" r="2.6" fill="'+K+'"/><circle cx="75.6" cy="60.6" r="2.6" fill="'+K+'"/>';
+  const mouth = mood==="cheer"
+    ? '<path d="M52 79 q8 10 16 0 z" fill="var(--coral)" stroke="'+K+'" stroke-width="2.6" stroke-linejoin="round"/>'
+    : mood==="think" ? '<path d="M55 81 h10" stroke="'+K+'" stroke-width="3" stroke-linecap="round"/>'
+    : '<path d="M60 76 v3 M53 80 q3.5 4 7 0 q3.5 4 7 0" fill="none" stroke="'+K+'" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>';
+  const paws = mood==="cheer"
+    ? '<ellipse cx="13" cy="56" rx="9" ry="11" fill="'+K+'" transform="rotate(-20 13 56)"/><ellipse cx="107" cy="56" rx="9" ry="11" fill="'+K+'" transform="rotate(20 107 56)"/>'
+    : '<ellipse cx="40" cy="104" rx="11" ry="7" fill="'+K+'"/><ellipse cx="80" cy="104" rx="11" ry="7" fill="'+K+'"/>';
+  return svgNode('<svg class="mascot '+(reduceMotion()?"":"bob")+'" viewBox="0 0 120 120" role="img" aria-label="'+t("mascotLabel")+'" style="'+(size?"width:"+size+"px;height:"+size+"px":"")+'">'+
+    '<ellipse cx="60" cy="114" rx="34" ry="5" fill="var(--line)"/>'+
+    '<circle cx="28" cy="30" r="14" fill="'+K+'"/><circle cx="92" cy="30" r="14" fill="'+K+'"/>'+
+    '<ellipse cx="60" cy="64" rx="45" ry="41" fill="#fff" stroke="var(--line-strong)" stroke-width="2"/>'+
+    '<ellipse cx="45" cy="60" rx="11" ry="14" fill="'+K+'" transform="rotate(28 45 60)"/><ellipse cx="75" cy="60" rx="11" ry="14" fill="'+K+'" transform="rotate(-28 75 60)"/>'+
+    eyes+
+    '<ellipse cx="60" cy="73" rx="5.5" ry="3.8" fill="'+K+'"/>'+ mouth +
+    '<circle cx="33" cy="78" r="5" fill="var(--coral)" opacity=".35"/><circle cx="87" cy="78" r="5" fill="var(--coral)" opacity=".35"/>'+
+    '<path d="M84 18 q8 -10 18 -8 q-4 9 -18 8 z" fill="var(--go)"/><path d="M84 18 q6 -4 12 -6" stroke="var(--go-dark)" stroke-width="1.5" fill="none"/>'+
+    paws+'</svg>');
 }
 function hero(mood,text){ return el("div",{class:"hero"},mascot(mood),el("div",{class:"bubble"},text)); }
 const ICON={
@@ -592,8 +745,12 @@ const ICON={
   grip:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.8"/><circle cx="15" cy="6" r="1.8"/><circle cx="9" cy="12" r="1.8"/><circle cx="15" cy="12" r="1.8"/><circle cx="9" cy="18" r="1.8"/><circle cx="15" cy="18" r="1.8"/></svg>'
 };
 function tipCard(open){
-  const d=refCard(open); d.classList.add("tip");
-  const sum=d.querySelector("summary"); sum.textContent=""; sum.append(svgNode(ICON.bulb),"Tip card: how Counter works"); return d;
+  return el("details",{class:"ref tip",open:!!open},el("summary",{},svgNode(ICON.bulb),t("tipTitle")),
+    el("div",{},
+      el("p",{class:"small"},...t("tipIntro")),
+      pre('from collections import Counter\n\nc = Counter(["red", "blue", "red"])\nc                →  Counter({\'red\': 2, \'blue\': 1})\nc["red"]         →  2\nc["pink"]        →  0      '+t("tipNever")+'\nc.most_common(1) →  [(\'red\', 2)]\nc.most_common(2) →  [(\'red\', 2), (\'blue\', 1)]'),
+      el("p",{class:"small"},...t("tipMost")),
+      pre('"Hi There".lower()  →  \'hi there\'\n"hi there".split()  →  [\'hi\', \'there\']')));
 }
 function confetti(){
   if(reduceMotion()) return;
@@ -602,43 +759,40 @@ function confetti(){
   const cs=getComputedStyle(document.documentElement), cols=["--brand","--sun","--go","--coral"].map(v=>cs.getPropertyValue(v).trim()||"#7c5cff");
   const P=Array.from({length:140},()=>({x:W/2+(Math.random()-.5)*W*.3,y:H*.35,vx:(Math.random()-.5)*14,vy:-Math.random()*14-4,r:Math.random()*6+4,c:cols[Math.floor(Math.random()*4)],a:Math.random()*6,s:(Math.random()-.5)*.3}));
   const t0=performance.now();
-  (function f(t){ const k=(t-t0)/1000; ctx.clearRect(0,0,W,H);
+  (function f(tm){ const k=(tm-t0)/1000; ctx.clearRect(0,0,W,H);
     for(const p of P){ p.vy+=0.45; p.x+=p.vx; p.y+=p.vy; p.vx*=.99; p.a+=p.s; ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.a); ctx.fillStyle=p.c; ctx.globalAlpha=Math.max(0,1-k/2.6); ctx.fillRect(-p.r/2,-p.r/4,p.r,p.r/2); ctx.restore(); }
     if(k<2.6) requestAnimationFrame(f); else c.remove(); })(t0);
 }
 
-/* consent: the information sheet, three checks and initials as the signature */
+/* consent: short information sheet, three checks, initials as the signature */
+const consentState={adult:false,course:false,agree:false,initials:""};
 function sConsent(){
   paintBar();
-  const c={adult:false,course:false,agree:false,initials:""};
-  const btn=el("button",{class:"primary big",disabled:true},"I agree, let's start");
+  const c=consentState;
+  const btn=el("button",{class:"primary big",disabled:true},t("yes"));
   const upd=()=>{ btn.disabled=!(c.adult&&c.course&&c.agree&&/^[A-Za-z]{1,4}$/.test(c.initials.replace(/[.\s]/g,""))); };
-  const box=(k,text)=>el("label",{class:"check"},el("input",{type:"checkbox",onchange:e=>{ c[k]=e.target.checked; upd(); }}),el("span",{},text));
+  const box=(k,text)=>el("label",{class:"check"},el("input",{type:"checkbox",checked:c[k],onchange:e=>{ c[k]=e.target.checked; upd(); }}),el("span",{},text));
   btn.addEventListener("click",()=>{
     const today=new Date().toISOString().slice(0,10);
-    saveConsent({ initials:c.initials.replace(/[.\s]/g,"").toUpperCase(), date:today, form:"consent-v1" });
-    draft.consent_date=today; go("welcome");
+    saveConsent({ initials:c.initials.replace(/[.\s]/g,"").toUpperCase(), date:today, form:"consent-v1-"+LANG() });
+    draft.consent_date=today; Object.assign(consentState,{adult:false,course:false,agree:false,initials:""}); go("welcome");
   });
-  const decline=()=>confirmBox("Not taking part?","That's completely fine. Nothing you've typed is kept.","Yes, stop here",()=>{ clearDraft(); participantMode=false; screen(hero("hi","No problem at all. Thanks for stopping by!"),el("p",{class:"muted"},"Please let the experimenter know.")); paintBar(); setProgress(null); });
+  const decline=()=>confirmBox(t("declineTitle"),t("declineText"),t("declineOk"),()=>{ const bye=t("bye"), note=t("byeNote"); clearDraft(); participantMode=false; screen(hero("hi",bye),el("p",{class:"muted"},note)); paintBar(); setProgress(null); },false,t("goBack"));
+  const initials=el("input",{type:"text",id:"c-initials",value:c.initials,maxlength:"6",autocomplete:"off",autocapitalize:"characters",placeholder:t("initialsHint"),style:"max-width:200px;font-size:1.3rem;letter-spacing:.15em;text-transform:uppercase",oninput:e=>{ c.initials=e.target.value; upd(); }});
+  upd();
   screen(
-    hero("hi","Hi! I'm Pip. Before we start, here's what this study is about."),
+    el("div",{class:"spread"},el("span",{class:"label"},"Language · 语言"),langSwitch()),
+    hero("hi",t("hi")),
     el("div",{class:"card stack"},
-      el("h2",{},"About this study"),
-      el("p",{},"We are students on PSP404TC. We want to find out how using an AI coding assistant affects how well students solve short Python tasks and how well they understand their own code."),
-      el("div",{class:"stack small"},
-        el("p",{},el("b",{},"What you'll do: "),"three short Python tasks (10 minutes), a few questions about your code (about 6 minutes) and four questions about you. About 18 minutes in total."),
-        el("p",{},el("b",{},"Groups: "),"you've been placed at random in one of two groups. One group may use their own AI assistant (such as ChatGPT); the other may not use any AI or the internet."),
-        el("p",{},el("b",{},"Your data: "),"we record your time, your answers and your questionnaire. If you're in the AI group, the experimenter will ask to see your AI conversation at the end, to understand how the tool was used; it's kept without your name. Your name is never recorded; you're known only as ",el("b",{},draft.code),". Your initials below are kept apart from your answers."),
-        el("p",{},el("b",{},"It's voluntary: "),"you can stop at any time, and ask for your answers to be removed (quote ",el("b",{},draft.code),") until we start analysing the data. There's no penalty and it doesn't affect any course mark."),
-        el("p",{},el("b",{},"Risks: "),"no more than everyday risk."),
-        el("p",{},el("b",{},"Contact: "), CONTACT_EMAIL ? CONTACT_EMAIL : "ask the experimenter for the group's email."))),
+      el("h2",{},t("about")),
+      el("p",{},t("intro")),
+      el("dl",{class:"facts"}, t("rows",draft.code).flatMap(([k,v])=>[el("dt",{},k),el("dd",{},v)]))),
     el("div",{class:"card stack"},
-      el("h2",{},"Your consent"),
-      box("adult","I am 18 or older."), box("course","I have completed at least one Python course."), box("agree","I have read the information above and agree to take part."),
-      el("label",{class:"f"},"Type your initials to sign",
-        el("input",{type:"text",id:"c-initials",maxlength:"6",autocomplete:"off",autocapitalize:"characters",placeholder:"e.g. JK",style:"max-width:160px;font-size:1.3rem;letter-spacing:.15em;text-transform:uppercase",oninput:e=>{ c.initials=e.target.value; upd(); }})),
-      el("p",{class:"small muted"},"Date: "+new Date().toLocaleDateString())),
-    el("div",{class:"actions"},el("button",{onclick:decline},"I don't want to take part"),btn));
+      el("h2",{},t("consent")),
+      box("adult",t("adult")), box("course",t("course")), box("agree",t("agree")),
+      el("label",{class:"f"},t("initials"), initials),
+      el("p",{class:"small muted"},t("date")+": "+new Date().toLocaleDateString(LANG()==="zh"?"zh-CN":undefined))),
+    el("div",{class:"actions"},el("button",{onclick:decline},t("no")),btn));
 }
 
 function sWelcome(){
@@ -651,27 +805,27 @@ function sWelcome(){
     let n=3; const step=()=>{ if(n===0){ ov.remove(); draft.started_at=Date.now(); go("t1"); return; } ov.innerHTML=""; ov.appendChild(el("b",{},n)); n--; setTimeout(step,700); }; step();
   };
   screen(
-    hero("hi", ai? "You can use your own AI assistant, like ChatGPT on your phone or in another tab. Copy a task and paste it in, any way you like." : "This one's just you: no AI, search engines or websites, please."),
+    hero("hi", ai? t("aiHero") : t("ctrlHero")),
     el("div",{class:"card stack"},
-      el("h1",{},"Three short tasks, 10 minutes"),
-      el("p",{},"Put some lines in order, fix a bug, then finish a function. You can move between the three tasks freely."),
-      el("p",{class:"muted"},"There's no Run button and no marking on screen, so just write what you think is right. Nobody expects perfect code.")),
-    el("div",{class:"actions"},el("span"),el("button",{class:"go big",onclick:start},"Start the 10 minutes")));
+      el("h1",{},t("welcomeTitle")),
+      el("p",{},t("welcomeP1")),
+      el("p",{class:"muted"},t("welcomeP2"))),
+    el("div",{class:"actions"},el("span"),el("button",{class:"go big",onclick:start},t("start10"))));
 }
 
 const TASK_STEPS=["t1","t2","t3"];
 function clockText(left){ const s=Math.max(0,Math.ceil(left)); return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0"); }
 function taskTimer(){
-  const LIMIT=600, label=el("span",{}), t=el("span",{class:"pill timer",role:"timer","aria-label":"Time left"},svgNode(ICON.clock),label);
+  const LIMIT=600, label=el("span",{}), tm=el("span",{class:"pill timer",role:"timer","aria-label":t("timeLeft")},svgNode(ICON.clock),label);
   const up=()=>{
     const left=LIMIT-(Date.now()-draft.started_at)/1000;
     label.textContent=clockText(left);
-    t.classList.toggle("low",left<=60);
-    if(left<=60 && left>0 && !draft.warned){ draft.warned=true; saveDraft(); toast("1 minute left"); }
+    tm.classList.toggle("low",left<=60);
+    if(left<=60 && left>0 && !draft.warned){ draft.warned=true; saveDraft(); toast(t("oneMin")); }
     if(left<=0) submitTasks(true);
   };
   up(); // show the real time straight away, no flash of 10:00
-  tick=setInterval(up,250); return t;
+  tick=setInterval(up,250); return tm;
 }
 function toast(text){
   const n=el("div",{role:"status",style:"position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:25;background:var(--coral);color:#fff;font-weight:800;padding:10px 20px;border-radius:999px;box-shadow:0 4px 0 var(--coral-dark)"},text);
@@ -687,22 +841,27 @@ function submitTasks(timedOut){
   go("break1");
 }
 const COPY={
-  1:"Put these Python lines in the right order to make a function that returns the average of a list of numbers. The indentation is already correct. Give the order as line numbers.\n\n"+Object.entries(T1_LINES).map(([k,v])=>"["+k+"] "+v).join("\n"),
-  2:"This Python function should count how many even numbers are in a list. For example, count_even([1, 2, 3, 4]) should return 2. One line is wrong. Find and fix it.\n\n"+T2_TEMPLATE,
-  3:"Finish this Python function so it returns the word that appears most often in text. Treat upper and lower case as the same and return the word in lower case. Words are separated by spaces, with no punctuation and no ties. Use Counter from collections. Example: top_word(\"The cat saw the dog\") returns \"the\".\n\n"+T3_TEMPLATE
+  en:{
+    1:"Put these Python lines in the right order to make a function that returns the average of a list of numbers. The indentation is already correct. Give the order as line numbers.\n\n"+Object.entries(T1_LINES).map(([k,v])=>"["+k+"] "+v).join("\n"),
+    2:"This Python function should count how many even numbers are in a list. For example, count_even([1, 2, 3, 4]) should return 2. One line is wrong. Find and fix it.\n\n"+T2_TEMPLATE,
+    3:"Finish this Python function so it returns the word that appears most often in text. Treat upper and lower case as the same and return the word in lower case. Words are separated by spaces, with no punctuation and no ties. Use Counter from collections. Example: top_word(\"The cat saw the dog\") returns \"the\".\n\n"+T3_TEMPLATE },
+  zh:{
+    1:"把下面这些 Python 代码行按正确顺序排列，组成一个返回一组数字平均值的函数。缩进已经是正确的。请用行号写出顺序。\n\n"+Object.entries(T1_LINES).map(([k,v])=>"["+k+"] "+v).join("\n"),
+    2:"这个 Python 函数应该统计列表中偶数的个数。例如 count_even([1, 2, 3, 4]) 应该返回 2。其中有一行是错的，请找出并修复。\n\n"+T2_TEMPLATE,
+    3:"补全这个 Python 函数，让它返回文本中出现次数最多的单词。大小写视为相同，返回小写形式。单词之间用空格分隔，没有标点，也不会出现并列。请使用 collections 里的 Counter。例如 top_word(\"The cat saw the dog\") 返回 \"the\"。\n\n"+T3_TEMPLATE }
 };
 function copyTask(n,btn){
-  const done=()=>{ btn.textContent="Copied. Paste it into your AI"; setTimeout(()=>btn.textContent="Copy this task",2500); };
-  try{ navigator.clipboard.writeText(COPY[n]).then(done,()=>{ btn.textContent="Couldn't copy, select the text instead"; }); }catch(e){ btn.textContent="Couldn't copy, select the text instead"; }
+  const done=()=>{ btn.textContent=t("copied"); setTimeout(()=>btn.textContent=t("copy"),2500); };
+  try{ navigator.clipboard.writeText(COPY[LANG()][n]).then(done,()=>{ btn.textContent=t("copyFail"); }); }catch(e){ btn.textContent=t("copyFail"); }
 }
 function taskFrame(n,title,lead,body){
   paintBar(taskTimer());
-  const copyBtn = draft.group==="AI" ? el("button",{type:"button",class:"small"},"Copy this task") : null;
+  const copyBtn = draft.group==="AI" ? el("button",{type:"button",class:"small"},t("copy")) : null;
   if(copyBtn) copyBtn.addEventListener("click",()=>copyTask(n,copyBtn));
-  const back=n>1?el("button",{onclick:()=>go("t"+(n-1))},"Back"):el("span");
-  const next=n<3?el("button",{class:"primary big",onclick:()=>go("t"+(n+1))},"Next task")
-    :el("button",{class:"go big",onclick:()=>confirmBox("Submit your three tasks?","You can't change them after this, and the timer stops.","Submit",()=>submitTasks(false))},"Submit tasks");
-  screen(el("div",{class:"stack"},el("div",{class:"spread"},el("div",{class:"label"},"Task "+n+" of 3"),copyBtn),el("h1",{},title),lead?el("p",{},...[].concat(lead)):null),
+  const back=n>1?el("button",{onclick:()=>go("t"+(n-1))},t("back")):el("span");
+  const next=n<3?el("button",{class:"primary big",onclick:()=>go("t"+(n+1))},t("nextTask"))
+    :el("button",{class:"go big",onclick:()=>confirmBox(t("submitTitle"),t("submitText"),t("submit"),()=>submitTasks(false),false,t("goBack"))},t("submitTasks"));
+  screen(el("div",{class:"stack"},el("div",{class:"spread"},el("div",{class:"label"},t("taskOf",n)),copyBtn),el("h1",{},title),lead?el("p",{},...[].concat(lead)):null),
     body, el("div",{class:"actions"},back,next));
 }
 
@@ -710,10 +869,10 @@ function taskFrame(n,title,lead,body){
 function sTask1(){
   const T=draft.tasks;
   let seq=Array.isArray(T.t1_seq)?T.t1_seq.slice():(parseOrder(T.t1_order)||[]);
-  const board=el("div",{class:"board","aria-label":"Your function, top to bottom"}), bank=el("div",{class:"bank","aria-label":"Lines to use"});
+  const board=el("div",{class:"board","aria-label":t("yourFunction")}), bank=el("div",{class:"bank","aria-label":t("lines")});
   const persist=()=>{ T.t1_seq=seq.slice(); T.t1_order=seq.join(" "); saveDraft(); };
   const tile=(id,placed)=>{
-    const b=el("button",{type:"button",class:"tile"+(placed?" placed":""),"data-id":id,"aria-label":(placed?"Remove line ":"Add line ")+id},
+    const b=el("button",{type:"button",class:"tile"+(placed?" placed":""),"data-id":id,"aria-label":placed?t("removeLine",id):t("addLine",id)},
       el("span",{class:"num"},id), el("span",{class:"txt"},T1_LINES[id]), placed?el("span",{class:"handle","aria-hidden":"true"},svgNode(ICON.grip)):null);
     b.addEventListener("click",()=>{ if(placed) seq=seq.filter(x=>x!==id); else if(!seq.includes(id)) seq.push(id); persist(); render(id); });
     return b;
@@ -729,14 +888,14 @@ function sTask1(){
   loadScript("https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js").then(()=>{
     if(!window.Sortable||!board.isConnected) return;
     Sortable.create(board,{animation:180,draggable:".tile",delayOnTouchOnly:true,delay:120,
-      onEnd:()=>{ seq=[...board.querySelectorAll(".tile")].map(t=>+t.dataset.id); persist(); render(); }});
+      onEnd:()=>{ seq=[...board.querySelectorAll(".tile")].map(x=>+x.dataset.id); persist(); render(); }});
   }).catch(()=>{});
-  taskFrame(1,"Put the lines in order",["These lines make a function that returns the ",el("b",{},"average")," of a list of numbers. Tap them in the right order. The indentation is already right."],
+  taskFrame(1,t("t1title"),t("t1lead"),
     el("div",{class:"stack"},
-      el("div",{class:"spread"},el("div",{class:"label"},"Your function"),el("button",{class:"small",onclick:()=>{ seq=[]; persist(); render(); }},"Clear")),
+      el("div",{class:"spread"},el("div",{class:"label"},t("yourFunction")),el("button",{class:"small",onclick:()=>{ seq=[]; persist(); render(); }},t("clear"))),
       board,
-      el("p",{class:"small muted"},"Tap a line in your function to send it back. Drag lines to swap them around."),
-      el("div",{class:"label"},"Lines"), bank));
+      el("p",{class:"small muted"},t("t1hint")),
+      el("div",{class:"label"},t("lines")), bank));
 }
 
 /* Task 2: tap a line to edit it */
@@ -750,23 +909,23 @@ function sTask2(){
     lines.forEach((ln,i)=>{
       const changed=ln!==orig[i];
       if(i===editing){
-        const inp=el("input",{type:"text",value:ln,spellcheck:"false",autocapitalize:"off",autocomplete:"off","aria-label":"Edit line "+(i+1)});
+        const inp=el("input",{type:"text",value:ln,spellcheck:"false",autocapitalize:"off",autocomplete:"off","aria-label":t("editLine",i+1)});
         inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); commit(i,inp.value); editing=-1; render(); } else if(e.key==="Escape"){ editing=-1; render(); } });
         inp.addEventListener("blur",()=>{ if(editing===i){ commit(i,inp.value); editing=-1; render(); } });
         list.appendChild(el("div",{class:"cline editing"+(changed?" edited":"")},el("span",{class:"ln"},i+1),inp));
         if(focus) setTimeout(()=>{ inp.focus(); const p=inp.value.length; inp.setSelectionRange(p,p); },0);
       } else {
-        const b=el("button",{type:"button",class:"cline"+(changed?" edited":""),"aria-label":"Line "+(i+1)+(changed?", edited":"")+". Tap to edit."},el("span",{class:"ln"},i+1),el("span",{class:"src"},ln||" "));
+        const b=el("button",{type:"button",class:"cline"+(changed?" edited":""),"aria-label":t("lineLabel",i+1,changed)},el("span",{class:"ln"},i+1),el("span",{class:"src"},ln||" "));
         b.addEventListener("click",()=>{ editing=i; render(true); });
         list.appendChild(b);
       }
     });
   }
   render();
-  taskFrame(2,"Find and fix the bug",["This function should count the ",el("b",{},"even")," numbers in a list. For example, ",el("code",{},"count_even([1, 2, 3, 4])")," should return 2. One line is wrong."],
+  taskFrame(2,t("t2title"),t("t2lead"),
     el("div",{class:"stack"}, list,
-      el("div",{class:"spread"},el("p",{class:"small muted"},"Tap a line to edit it, then press Enter. Edited lines turn yellow."),
-        el("button",{class:"small",onclick:()=>{ lines=orig.slice(); editing=-1; T.t2_code=T2_TEMPLATE; saveDraft(); render(); }},"Undo my changes"))));
+      el("div",{class:"spread"},el("p",{class:"small muted"},t("t2hint")),
+        el("button",{class:"small",onclick:()=>{ lines=orig.slice(); editing=-1; T.t2_code=T2_TEMPLATE; saveDraft(); render(); }},t("undo")))));
 }
 
 /* Task 3: write code with Counter */
@@ -774,65 +933,65 @@ function editorWithIndent(id,value,onInput){
   const box=codeBox(id,value,onInput);
   const ins=s=>{ const a=box.selectionStart,b=box.selectionEnd; box.value=box.value.slice(0,a)+s+box.value.slice(b); box.selectionStart=box.selectionEnd=a+s.length; box.focus(); onInput(box.value); };
   return el("div",{class:"stack"},box,el("div",{class:"editorbar"},
-    el("button",{type:"button",class:"small",onclick:()=>ins("    ")},"Indent ⇥"),
-    el("button",{type:"button",class:"small",onclick:()=>ins("\n    ")},"New indented line")));
+    el("button",{type:"button",class:"small",onclick:()=>ins("    ")},t("indent")),
+    el("button",{type:"button",class:"small",onclick:()=>ins("\n    ")},t("newIndented"))));
 }
 function sTask3(){
   const T=draft.tasks;
-  taskFrame(3,"Finish the function",["Finish ",el("code",{},"top_word(text)")," so it returns the word that appears most often. Treat upper and lower case as the same and return the word in lower case. Words are separated by spaces, with no punctuation and no ties."],
+  taskFrame(3,t("t3title"),t("t3lead"),
     el("div",{class:"stack"},
-      el("div",{class:"hint"},"Example: ",el("code",{},'top_word("The cat saw the dog")')," returns ",el("code",{},'"the"'),". Use ",el("b",{},"Counter"),": the tip card shows how."),
+      el("div",{class:"hint"},...t("t3example")),
       tipCard(true),
       editorWithIndent("t3",T.t3_code,v=>{ T.t3_code=v; saveDraft(); })));
 }
 
 function sBreak1(){
   paintBar();
-  calmScreen(hero("hi", draft.finished? "That's the tasks done. Thank you." : "That's the 10 minutes. Your answers are saved."),
-    el("div",{class:"card stack"},el("h1",{},"Now, just you"),
-      el("p",{},"The next four questions are about the code you just wrote. They help us see how you understand it on your own, so please close any AI app or tab now and keep it closed until the end."),
-      el("p",{class:"muted"},"There's no timer here. Take your time, answer in your own words, and it's completely fine to say you're not sure.")),
-    el("div",{class:"actions"},el("span"),el("button",{class:"primary big",onclick:()=>{ draft.u_started_at=Date.now(); go("q1"); }},"I'm ready")));
+  calmScreen(hero("hi", draft.finished? t("heroDone") : t("heroTime")),
+    el("div",{class:"card stack"},el("h1",{},t("justYou")),
+      el("p",{},t("b1p1")),
+      el("p",{class:"muted"},t("b1p2"))),
+    el("div",{class:"actions"},el("span"),el("button",{class:"primary big",onclick:()=>{ draft.u_started_at=Date.now(); go("q1"); }},t("ready"))));
 }
 
 function sQ(){
   const k=draft.step, U=draft.understanding, save=()=>saveDraft();
   paintBar();
   const order=["q1","q2","q3","change"], i=order.indexOf(k);
-  const lab=el("div",{class:"label"},"Question "+(i+1)+" of 4 · on your own, no AI");
+  const lab=el("div",{class:"label"},t("qOf",i+1));
   let title, body;
   if(k==="q1"){
-    title="What was wrong with count_even?";
-    body=[el("p",{},"In your own words, what was the mistake in the original function, and why does your fix work?"),
-      el("div",{class:"label"},"Your fixed version"),pre(draft.tasks.t2_code||""),
-      el("label",{class:"f",for:"q1"},"Your answer"),textBox("q1",U.q1,v=>{ U.q1=v; save(); })];
+    title=t("q1title");
+    body=[el("p",{},t("q1p")),
+      el("div",{class:"label"},t("yourFixed")),pre(draft.tasks.t2_code||""),
+      el("label",{class:"f",for:"q1"},t("yourAnswer")),textBox("q1",U.q1,v=>{ U.q1=v; save(); })];
   } else if(k==="q2"){
-    title="Walk through your Task 3 code";
-    body=[el("p",{},"Imagine your function gets the text ",el("code",{},'"Dog cat dog"'),". What does it count, and what does it give back? Which line picks the answer?"),
-      el("div",{class:"label"},"Your Task 3 code"),pre(draft.tasks.t3_code||""),
-      el("label",{class:"f",for:"q2"},"Your answer"),textBox("q2",U.q2,v=>{ U.q2=v; save(); }),tipCard(false)];
+    title=t("q2title");
+    body=[el("p",{},...t("q2p")),
+      el("div",{class:"label"},t("yourT3")),pre(draft.tasks.t3_code||""),
+      el("label",{class:"f",for:"q2"},t("yourAnswer")),textBox("q2",U.q2,v=>{ U.q2=v; save(); }),tipCard(false)];
   } else if(k==="q3"){
-    title="What does this print?";
-    body=[el("p",{},"This small piece of code is the same for everyone. What would the two print lines show? Your best guess is fine."),
+    title=t("q3title");
+    body=[el("p",{},t("q3p")),
       pre('from collections import Counter\nc = Counter("banana")\nprint(c["a"], c["x"])\nprint(c.most_common(1)[0][0])'),
-      el("label",{class:"f"},"First line prints",el("input",{type:"text",id:"q3a",value:U.q3_line1||"",autocomplete:"off",style:"font-family:var(--mono)",oninput:e=>{ U.q3_line1=e.target.value; save(); }})),
-      el("label",{class:"f"},"Second line prints",el("input",{type:"text",id:"q3b",value:U.q3_line2||"",autocomplete:"off",style:"font-family:var(--mono)",oninput:e=>{ U.q3_line2=e.target.value; save(); }})),
+      el("label",{class:"f"},t("first"),el("input",{type:"text",id:"q3a",value:U.q3_line1||"",autocomplete:"off",style:"font-family:var(--mono)",oninput:e=>{ U.q3_line1=e.target.value; save(); }})),
+      el("label",{class:"f"},t("second"),el("input",{type:"text",id:"q3b",value:U.q3_line2||"",autocomplete:"off",style:"font-family:var(--mono)",oninput:e=>{ U.q3_line2=e.target.value; save(); }})),
       tipCard(false)];
   } else {
-    title="Change your code";
-    body=[el("p",{},"Last one. Change your Task 3 function so it gives back a ",el("b",{},"list of the two most common words"),", most common first. Your code is already in the box, so you only need to change it."),
+    title=t("chTitle");
+    body=[el("p",{},...t("chp")),
       editorWithIndent("mod",U.mod_code,v=>{ U.mod_code=v; save(); }),tipCard(false)];
   }
-  const back=i>0?el("button",{onclick:()=>go(order[i-1])},"Back"):el("span");
-  const next=el("button",{class:"primary big",onclick:()=>{ if(i<3) go(order[i+1]); else { draft.u_time_sec=Math.round((Date.now()-(draft.u_started_at||Date.now()))/1000); go("break2"); } }},i<3?"Next":"Finish this part");
+  const back=i>0?el("button",{onclick:()=>go(order[i-1])},t("back")):el("span");
+  const next=el("button",{class:"primary big",onclick:()=>{ if(i<3) go(order[i+1]); else { draft.u_time_sec=Math.round((Date.now()-(draft.u_started_at||Date.now()))/1000); go("break2"); } }},i<3?t("next"):t("finishPart"));
   calmScreen(el("div",{class:"stack"},lab,el("h1",{},title)), el("div",{class:"card stack"},...body), el("div",{class:"actions"},back,next));
 }
 
 function sBreak2(){
   paintBar();
-  screen(hero("cheer","Almost there!"),
-    el("div",{class:"card stack"},el("h1",{},"Last bit: four questions about you"),el("p",{class:"muted"},"Tap your answers. It takes about a minute.")),
-    el("div",{class:"actions"},el("span"),el("button",{class:"primary big",onclick:()=>go("about")},"Continue")));
+  screen(hero("cheer",t("almost")),
+    el("div",{class:"card stack"},el("h1",{},t("lastBit")),el("p",{class:"muted"},t("tapAnswers"))),
+    el("div",{class:"actions"},el("span"),el("button",{class:"primary big",onclick:()=>go("about")},t("cont"))));
 }
 
 function sAbout(){
@@ -840,14 +999,14 @@ function sAbout(){
   const q=draft.questionnaire, save=()=>saveDraft();
   const err=el("p",{class:"small",style:"color:var(--coral-dark);font-weight:700",role:"alert"});
   const finish=async()=>{
-    if(q.python_months===undefined||q.python_months===""||isNaN(+q.python_months)) return err.textContent="Please enter roughly how many months you've used Python.";
-    if(!q.python_self_rating||!q.ai_tool_use||!q.used_counter_before) return err.textContent="Please answer questions 2, 3 and 4.";
+    if(q.python_months===undefined||q.python_months===""||isNaN(+q.python_months)) return err.textContent=t("errMonths");
+    if(!q.python_self_rating||!q.ai_tool_use||!q.used_counter_before) return err.textContent=t("errQs");
     const s={ id:draft.id, code:draft.code, group:draft.group, level:draft.level, pilot:draft.pilot, model:draft.model||"", created_at:draft.created_at, version:"kit-v2",
-      consent:true, consent_date:draft.consent_date||null,
+      lang:LANG(), consent:true, consent_date:draft.consent_date||null,
       started_at:draft.started_at, submitted_at:draft.submitted_at, time_sec:draft.time_sec, finished:draft.finished, u_time_sec:draft.u_time_sec,
       tasks:{t1_order:draft.tasks.t1_order||"",t2_code:draft.tasks.t2_code,t3_code:draft.tasks.t3_code}, understanding:draft.understanding,
       questionnaire:{...q,python_months:+q.python_months}, marks:{}, ai:{}, notes:"", excluded:false };
-    btn.disabled=true; btn.textContent="Saving…";
+    btn.disabled=true; btn.textContent=t("saving");
     s.q3=scoreQ3(s.understanding?.q3_line1,s.understanding?.q3_line2);
     try{
       const r=await Promise.race([gradeSession(s),new Promise((_,rej)=>setTimeout(()=>rej(new Error("slow")),20000))]);
@@ -858,25 +1017,25 @@ function sAbout(){
     go("done");
   };
   const scale=key=>choices([1,2,3,4,5].map(v=>[String(v),String(v)]),q[key]||"",v=>{ q[key]=v; save(); },"scale");
-  const btn=el("button",{class:"go big",onclick:()=>finish()},"Finish");
+  const btn=el("button",{class:"go big",onclick:()=>finish()},t("finish"));
   loadSkulpt().catch(()=>{});
-  screen(el("div",{class:"stack"},el("div",{class:"label"},"About you"),el("h1",{},"Four quick questions")),
+  screen(el("div",{class:"stack"},el("div",{class:"label"},t("aboutYou")),el("h1",{},t("fourQ"))),
     el("div",{class:"card stack-lg"},
-      el("label",{class:"f"},"1. Roughly how many months have you been using Python?",
+      el("label",{class:"f"},t("a1"),
         el("input",{type:"number",id:"q-months",min:"0",inputmode:"numeric",value:q.python_months??"",style:"max-width:140px",oninput:e=>{ q.python_months=e.target.value; save(); }})),
-      el("div",{class:"stack"},el("span",{class:"f"},"2. How good are you at Python?"),el("span",{class:"small muted"},"1 = beginner, 5 = confident"),scale("python_self_rating")),
-      el("div",{class:"stack"},el("span",{class:"f"},"3. How often do you use AI tools like ChatGPT when you code?"),el("span",{class:"small muted"},"1 = never, 5 = almost always"),scale("ai_tool_use")),
-      el("div",{class:"stack"},el("span",{class:"f"},"4. Had you used Python's Counter before today?"),
-        choices([["yes","Yes"],["no","No"],["unsure","Not sure"]],q.used_counter_before||"",v=>{ q.used_counter_before=v; save(); },"scale")),
-      el("label",{class:"f"},"Anything that made today hard? (optional)",textBox("q-hard",q.hard,v=>{ q.hard=v; save(); }))),
-    err, el("div",{class:"actions"},el("button",{onclick:()=>go("break2")},"Back"),btn));
+      el("div",{class:"stack"},el("span",{class:"f"},t("a2")),el("span",{class:"small muted"},t("a2s")),scale("python_self_rating")),
+      el("div",{class:"stack"},el("span",{class:"f"},t("a3")),el("span",{class:"small muted"},t("a3s")),scale("ai_tool_use")),
+      el("div",{class:"stack"},el("span",{class:"f"},t("a4")),
+        choices([["yes",t("ansYes")],["no",t("ansNo")],["unsure",t("ansUnsure")]],q.used_counter_before||"",v=>{ q.used_counter_before=v; save(); },"scale")),
+      el("label",{class:"f"},t("hard"),textBox("q-hard",q.hard,v=>{ q.hard=v; save(); }))),
+    err, el("div",{class:"actions"},el("button",{onclick:()=>go("break2")},t("back")),btn));
 }
 
 function uploadLine(){
   const n=el("div",{class:"hint small",role:"status"});
   const paint=()=>{ const pending=store.outbox.some(x=>x.action==="submit"&&x.session&&x.session.id===(draft&&draft.saved_id));
     n.className="hint small "+(pending?"warn":"ok");
-    n.textContent=!API? "Saved on this device." : pending? (store.err? "Not sent yet: the connection dropped. Please keep this page open; it will try again." : "Sending your answers…") : "Your answers have been sent. You can close this page."; };
+    n.textContent=!API? t("upDevice") : pending? (store.err? t("upFail") : t("upSending")) : t("upSent"); };
   paint(); uploadListeners.add(paint); return n;
 }
 function sDone(){
@@ -884,20 +1043,20 @@ function sDone(){
   if(!draft.done_shown){ draft.done_shown=true; saveDraft(); setTimeout(confetti,150); }
   flush();
   if(draft.remote){
-    screen(el("div",{class:"stack center"},mascot("cheer",150),el("h1",{},"All done. Thank you!"),
-      el("p",{class:"small muted"},"Your participant code is ",el("b",{},draft.code),". Quote it if you'd like your answers removed later.")), uploadLine());
+    screen(el("div",{class:"stack center"},mascot("cheer",150),el("h1",{},t("allDone")),
+      el("p",{class:"small muted"},...t("yourCode",draft.code))), uploadLine());
     return;
   }
-  screen(el("div",{class:"stack center"},mascot("cheer",150),el("h1",{},"All done. Thank you!"),
-      el("p",{class:"muted"},"Please let the experimenter know you've finished."),
-      el("p",{class:"small muted"},"Your participant code is ",el("b",{},draft.code),". Quote it if you'd like your answers removed later.")),
+  screen(el("div",{class:"stack center"},mascot("cheer",150),el("h1",{},t("allDone")),
+      el("p",{class:"muted"},t("tellExp")),
+      el("p",{class:"small muted"},...t("yourCode",draft.code))),
     uploadLine(),
     el("div",{class:"card stack"},
       el("div",{class:"label"},"For the experimenter"),
       el("p",{},"Session "+draft.code+" is saved. Debrief the participant, then:"),
       el("div",{class:"row"},
-        el("button",{class:"primary",onclick:()=>{ clearDraft(); location.hash="#setup"; show(); }},"Start next session"),
-        el("button",{onclick:()=>{ clearDraft(); location.hash="#results"; show(); }},"Go to results"))));
+        el("button",{class:"primary",onclick:()=>{ clearDraft(); document.documentElement.lang="en"; location.hash="#setup"; show(); }},"Start next session"),
+        el("button",{onclick:()=>{ clearDraft(); document.documentElement.lang="en"; location.hash="#results"; show(); }},"Go to results"))));
 }
 
 /* ---------- run session (experimenter) ---------- */
@@ -912,11 +1071,11 @@ function joinFromLink(){
   if(draft&&draft.code===j.c){ show(); return true; }
   if(lsGet(DONE_KEY,[]).includes(j.c)){
     participantMode=true; paintBar(); setProgress(null);
-    screen(el("div",{class:"stack center"},mascot("hi",130),el("h1",{},"You've already taken part"),el("p",{class:"muted"},"Thank you! There's nothing more to do.")));
+    screen(el("div",{class:"stack center"},mascot("hi",130),el("h1",{},I18N.en.already+" · "+I18N.zh.already),el("p",{class:"muted"},I18N.en.alreadyNote+" "+I18N.zh.alreadyNote)));
     return true;
   }
   const now=Date.now();
-  draft={ id:j.c+"_"+now.toString(36), code:j.c, group:j.g==="a"?"AI":"Control", level:j.l==="2+"?"2+":"1", pilot:!!j.p, model:j.m||"", remote:true, created_at:now, step:"consent",
+  draft={ id:j.c+"_"+now.toString(36), code:j.c, group:j.g==="a"?"AI":"Control", level:j.l==="2+"?"2+":"1", pilot:!!j.p, model:j.m||"", remote:true, lang:defaultLang(), created_at:now, step:"consent",
     tasks:{t1_order:"",t1_seq:[],t2_code:T2_TEMPLATE,t3_code:T3_TEMPLATE}, understanding:{}, questionnaire:{} };
   saveDraft(); show(); return true;
 }
