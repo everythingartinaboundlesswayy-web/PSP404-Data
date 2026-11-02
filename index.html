@@ -81,8 +81,17 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .nav a.admin-link{font-size:.85rem;font-weight:700;opacity:.8}
 .nav a[aria-current="page"]{background:var(--ink);color:var(--bg)}
 .pill{display:inline-flex;align-items:center;gap:6px;font-weight:800;padding:4px 12px;border-radius:999px;background:var(--surface);border:1.5px solid var(--line)}
-.timer{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:700;font-size:1.05rem;color:var(--ink);border-color:var(--ink)}
-.timer.low{color:var(--coral-dark);border-color:var(--coral);background:var(--coral-soft)}
+.timer{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600;font-size:1rem;color:var(--muted);border-color:var(--line);box-shadow:none;padding:4px 12px}
+.timer:active:not(:disabled){transform:none;box-shadow:none}
+.timer.hidden-clock{padding:6px 9px}
+.timer.hidden-clock .t-num:empty{display:none}
+.timer.low{color:var(--warn);border-color:var(--sun);background:var(--sun-soft)}
+.clock-note{display:flex;gap:10px;align-items:flex-start;margin:0;padding:12px 14px;border-radius:14px;background:var(--jade-soft);color:var(--ink);font-size:.95rem}
+.clock-note svg{width:18px;height:18px;flex:none;margin-top:2px;color:var(--jade-deep)}
+.settle{position:fixed;inset:0;z-index:30;display:grid;place-items:center;align-content:center;gap:8px;padding:24px;text-align:center;background:var(--jade);color:var(--ink)}
+.settle .pa{width:150px;height:auto}
+.settle b{font-family:var(--display);font-size:1.8rem;font-weight:800}
+.settle span{font-weight:700;color:var(--muted)}
 .timer svg{width:16px;height:16px}
 
 /* the participant's own journey: balls joined by a track; the first is already done */
@@ -358,9 +367,6 @@ td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
 /* overlays */
 .modal{position:fixed;inset:0;z-index:20;background:rgba(10,12,20,.55);display:flex;align-items:center;justify-content:center;padding:16px}
 .modal .card{max-width:420px;width:100%}
-.countdown{position:fixed;inset:0;z-index:30;display:grid;place-items:center;align-content:center;gap:10px;background:var(--spark);color:#fff}
-.countdown b{font-family:var(--display);font-size:min(40vw,220px);font-weight:800;line-height:1}
-.countdown span{font-weight:800;font-size:1.1rem;opacity:.85}
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:40}
 .langswitch{display:inline-flex;border:1.5px solid var(--line-strong);border-radius:999px;overflow:hidden;background:var(--surface)}
 .langswitch button{border:0;border-radius:0;box-shadow:none;padding:5px 12px;font-size:.88rem;background:transparent;color:var(--muted)}
@@ -385,7 +391,7 @@ td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
   @keyframes flutter{50%{transform:scaleX(.82) skewY(4deg)}}
   .pa-cheer .pa-body{animation:hop 1s cubic-bezier(.3,1.4,.5,1) 3}
   @keyframes hop{0%,100%{transform:translateY(-8px)}40%{transform:translateY(-22px)}}
-  .countdown b{animation:zoom .7s ease-out both}
+  .settle{animation:fade .5s ease-out both}
   @keyframes zoom{from{transform:scale(1.5);opacity:0}35%{opacity:1}to{transform:scale(1);opacity:1}}
   .j-ball.now{animation:ring 2.4s ease-in-out infinite}
   @keyframes ring{50%{box-shadow:0 0 0 8px var(--brand-soft)}}
@@ -820,8 +826,11 @@ const I18N={
   welcomeTitle:"Three short tasks, 10 minutes",
   welcomeP1:"Put some lines in order, fix a bug, then finish a function. You can move between the three tasks freely.",
   welcomeP2:"There's no Run button and no marking on screen, so just write what you think is right. Nobody expects perfect code.",
-  start10:"Start the 10 minutes",
-  timeLeft:"Time left", oneMin:"1 minute left",
+  welcomeClock:"The clock is only there so everyone gets the same time. It isn't an exam, and it starts when you're ready. You can hide it while you work.",
+  start10:"I'm ready",
+  settleTitle:"Take a breath", settleSub:"Task 1 is next. Read each task at your own pace.",
+  timeLeft:"Time left", oneMin:"1 minute left. Finish what you can; it's fine to leave parts.",
+  hideTime:"Hide the clock", showTime:"Show the clock",
   taskOf:n=>"Task "+n+" of 3", copy:"Copy this task", copied:"Copied. Paste it into your AI", copyFail:"Couldn't copy, select the text instead",
   nextTask:"Next task", submitTasks:"Submit tasks", submitTitle:"Submit your three tasks?", submitText:"You can't change them after this, and the timer stops.", submit:"Submit",
   t1title:"Put the lines in order", t1lead:()=>["These lines make a function that returns the ",B("average")," of a list of numbers. Tap them in the right order. The indentation is already right."],
@@ -882,8 +891,11 @@ const I18N={
   welcomeTitle:"三个简短任务，共 10 分钟",
   welcomeP1:"把几行代码排好顺序，修复一个错误，再补全一个函数。三个任务之间可以随意切换。",
   welcomeP2:"这里没有“运行”按钮，屏幕上也不会判断对错，写下你认为正确的答案就好。没有人要求代码完美。",
-  start10:"开始 10 分钟计时",
-  timeLeft:"剩余时间", oneMin:"还剩 1 分钟",
+  welcomeClock:"计时只是为了让每个人的时间都一样，这不是考试。准备好了再开始，做题时也可以把时钟隐藏起来。",
+  start10:"我准备好了",
+  settleTitle:"深呼吸", settleSub:"接下来是任务 1。按自己的节奏读题就好。",
+  timeLeft:"剩余时间", oneMin:"还剩 1 分钟。能完成多少就完成多少，没做完也没关系。",
+  hideTime:"隐藏时钟", showTime:"显示时钟",
   taskOf:n=>"任务 "+n+" / 3", copy:"复制这个任务", copied:"已复制，粘贴到你的 AI 里吧", copyFail:"无法复制，请手动选中文字",
   nextTask:"下一个任务", submitTasks:"提交任务", submitTitle:"提交这三个任务吗？", submitText:"提交后就不能再修改，计时也会停止。", submit:"提交",
   t1title:"把代码行排好顺序", t1lead:()=>["这些代码行组成一个函数，返回一组数字的",B("平均值"),"。请按正确的顺序点击它们。缩进已经是正确的。"],
@@ -991,7 +1003,6 @@ Object.assign(I18N.en,{
   jPart:(a,b)=>a+" of "+b, jStep:(i,n)=>"Step "+i+" of "+n, minLeft:n=>"About "+n+" min left", jTimer:"10-minute timer running",
   jAria:(i,n,l)=>"Step "+i+" of "+n+": "+l,
   welcomeSteps:["Put five lines of code in order","Find and fix one bug","Finish a short function using Counter"],
-  getReady:"Get ready",
   noAiAck:"No AI apps or tabs are open on my devices.",
   onYourOwn:"On your own, no AI", qOf:i=>"Question "+i+" of 4",
   lastBitSub:"Last bit: four quick questions about you. It takes about a minute.",
@@ -1006,7 +1017,6 @@ Object.assign(I18N.zh,{
   jPart:(a,b)=>a+"/"+b, jStep:(i,n)=>"第 "+i+" 步，共 "+n+" 步", minLeft:n=>"约剩 "+n+" 分钟", jTimer:"10 分钟计时中",
   jAria:(i,n,l)=>"第 "+i+" 步，共 "+n+" 步："+l,
   welcomeSteps:["把五行代码排好顺序","找出并修复一个错误","用 Counter 补全一个简短的函数"],
-  getReady:"准备",
   noAiAck:"我的设备上没有打开任何 AI 应用或标签页。",
   onYourOwn:"独立完成，不使用 AI", qOf:i=>"问题 "+i+" / 4",
   lastBitSub:"最后：四个关于你的简单问题，大约一分钟。",
@@ -1219,29 +1229,37 @@ function sWelcome(){
   let starting=false;
   const start=()=>{
     if(starting) return; starting=true;
-    const ov=el("div",{class:"countdown",role:"status"}); document.body.appendChild(ov);
-    let n=3; const step=()=>{ if(n===0){ ov.remove(); draft.started_at=Date.now(); go("t1"); return; } ov.innerHTML=""; ov.append(el("b",{},n),el("span",{},t("getReady"))); n--; setTimeout(step,700); }; step();
+    // a calm hand-off, no numbers counting down; the clock starts when Task 1 appears
+    let ov=null;
+    const begin=()=>{ if(ov) ov.remove(); draft.started_at=Date.now(); go("t1"); };
+    if(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches) return begin();
+    ov=el("div",{class:"settle",role:"status"},panda("tea"),el("b",{},t("settleTitle")),el("span",{},t("settleSub")));
+    document.body.appendChild(ov); setTimeout(begin,1600);
   };
   screen(
     panel("spark","laptop",t("welcomeTitle"), ai? t("aiHero") : t("ctrlHero")),
     el("div",{class:"card stack-lg"},
       el("ol",{class:"steps"}, t("welcomeSteps").map((s,i)=>el("li",{},el("span",{class:"n","aria-hidden":"true"},i+1),el("span",{},s)))),
-      el("p",{class:"muted"},t("welcomeP2"))),
+      el("p",{class:"muted"},t("welcomeP2")),
+      el("p",{class:"clock-note"},svgNode(ICON.clock),el("span",{},t("welcomeClock")))),
     el("div",{class:"actions"},el("span"),el("button",{class:"go big",onclick:start},t("start10"))));
 }
 
 const TASK_STEPS=["t1","t2","t3"];
 function clockText(left){ const s=Math.max(0,Math.ceil(left)); return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0"); }
 function taskTimer(){
-  const LIMIT=600, label=el("span",{}), tm=el("span",{class:"pill timer",role:"timer","aria-label":t("timeLeft")},svgNode(ICON.clock),label);
+  const LIMIT=600, label=el("span",{class:"t-num"});
+  const tm=el("button",{type:"button",class:"pill timer"+(draft.hideClock?" hidden-clock":""),role:"timer"},svgNode(ICON.clock),label);
+  const paintLabel=()=>{ tm.classList.toggle("hidden-clock",!!draft.hideClock); tm.setAttribute("aria-label",draft.hideClock?t("showTime"):t("timeLeft")); tm.title=draft.hideClock?t("showTime"):t("hideTime"); };
+  tm.addEventListener("click",()=>{ draft.hideClock=!draft.hideClock; draft.clock_hidden_ever=draft.clock_hidden_ever||draft.hideClock; saveDraft(); paintLabel(); up(); });
   const up=()=>{
     const left=LIMIT-(Date.now()-draft.started_at)/1000;
-    label.textContent=clockText(left);
+    label.textContent=draft.hideClock&&left>60?"":clockText(left);
     tm.classList.toggle("low",left<=60);
     if(left<=60 && left>0 && !draft.warned){ draft.warned=true; saveDraft(); toast(t("oneMin")); }
     if(left<=0) submitTasks(true);
   };
-  up(); // show the real time straight away, no flash of 10:00
+  paintLabel(); up(); // show the real time straight away, no flash of 10:00
   tick=setInterval(up,250); return tm;
 }
 function toast(text){
