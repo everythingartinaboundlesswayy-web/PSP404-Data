@@ -926,8 +926,10 @@ function vSetup(){
   const FORM_KEY="psp404-setup-form";
   const st=Object.assign({code:"",group:"",level:"",pilot:false,model:""}, lsGet(FORM_KEY,{}));
   const used=c=>allSessions().some(s=>s.code===c&&!s.pilot) || lsGet(ISSUED_KEY,[]).includes(c);
-  if(!st.code || used(st.code)) st.code=nextCode();
+  if(!st.code) st.code=nextCode();
   const keep=()=>lsSet(FORM_KEY,st);
+  const codeWarn=el("span",{class:"small",style:"color:var(--warn);font-weight:700",role:"status"});
+  const codeNote=()=>{ codeWarn.textContent = st.code && !st.pilot && used(st.code) ? st.code+" has already been used. Pick a new code, or tick Practice / test run." : ""; };
   const clearForm=()=>{ try{ localStorage.removeItem(FORM_KEY); }catch(e){} };
   const err=el("p",{class:"small",style:"color:var(--bad)",role:"alert"});
   const modelRow=el("label",{class:"f",hidden:true},"AI app they'll use (optional, e.g. ChatGPT app)",el("input",{type:"text",id:"s-model",value:st.model||"",placeholder:"e.g. ChatGPT app",style:"max-width:260px",oninput:e=>{ st.model=e.target.value.trim(); keep(); }}));
@@ -966,16 +968,16 @@ function vSetup(){
     draft&&draft.step!=="done"? el("div",{class:"hint warn spread"},el("span",{},"Session "+draft.code+" wasn't finished."),
       el("div",{class:"row"},el("button",{class:"primary",onclick:show},"Continue it"),el("button",{class:"danger",onclick:()=>confirmBox("Delete "+draft.code+"'s answers?","The unfinished session is removed from this device.","Delete",()=>{ clearDraft(); vSetup(); },true)},"Delete"))) : null,
     el("div",{class:"card stack-lg"},
-      el("label",{class:"f"},"Participant code",el("input",{type:"text",id:"s-code",value:st.code,style:"max-width:180px;font-family:var(--mono)",oninput:e=>{ st.code=e.target.value.trim(); keep(); }})),
+      el("label",{class:"f"},"Participant code",el("input",{type:"text",id:"s-code",value:st.code,style:"max-width:180px;font-family:var(--mono)",oninput:e=>{ st.code=e.target.value.trim(); keep(); codeNote(); }}),codeWarn),
       el("div",{class:"stack"},el("span",{class:"f"},"Group"),el("span",{class:"small muted"},"Take the next entry from your randomisation list."),
         choices([["AI","AI group","Uses their own AI"],["Control","Control group","No AI"]],st.group,v=>{ st.group=v; modelRow.hidden=v!=="AI"; keep(); })),
       modelRow,
       el("div",{class:"stack"},el("span",{class:"f"},"Python courses completed"),
         choices([["1","One"],["2+","Two or more"]],st.level,v=>{ st.level=v; keep(); })),
       el("p",{class:"small muted"},"The participant reads the information sheet and signs with their initials on the first screen."),
-      el("label",{class:"check"},el("input",{type:"checkbox",id:"s-pilot",checked:!!st.pilot,onchange:e=>{ st.pilot=e.target.checked; keep(); }}),
-        el("span",{class:"muted"},"Practice run (not counted in the results)"))),
-    err, el("div",{class:"row"},el("button",{class:"primary big",onclick:start},"Start on this device"),el("button",{class:"big",onclick:makeLink},"Make a link to send")),
+      el("label",{class:"check"},el("input",{type:"checkbox",id:"s-pilot",checked:!!st.pilot,onchange:e=>{ st.pilot=e.target.checked; keep(); codeNote(); }}),
+        el("span",{},el("b",{},"Practice / test run"),el("br"),el("span",{class:"small muted"},"For trying the app or a pilot. It's saved in the sheet but never counted in the Summary or Analysis, and its code can be reused.")))),
+    (setTimeout(codeNote,0), err), el("div",{class:"row"},el("button",{class:"primary big",onclick:start},"Start on this device"),el("button",{class:"big",onclick:makeLink},"Make a link to send")),
     el("p",{class:"small muted"},"Make a link to send gives this participant their own link with their code and group built in. They open it on their own phone or laptop and go straight to the consent screen."),
     saveStatus()));
 }
