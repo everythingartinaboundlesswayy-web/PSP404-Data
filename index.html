@@ -61,6 +61,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .brand{font-weight:900;display:flex;align-items:center;gap:8px}
 .nav{display:flex;gap:6px;flex-wrap:wrap}
 .nav a{color:var(--muted);text-decoration:none;padding:7px 12px;border-radius:12px;font-weight:800;font-size:.95rem;border:2px solid transparent}
+.nav{align-items:center}
+.nav a.admin-link{font-size:.85rem;opacity:.75}
 .nav a[aria-current="page"]{background:var(--brand-soft);color:var(--brand);border-color:var(--brand)}
 .progress{height:14px;border-radius:999px;background:var(--line);max-width:688px;width:calc(100% - 32px);margin:0 auto 12px;overflow:hidden}
 .progress i{display:block;height:100%;border-radius:999px;background:var(--go);position:relative;transition:width .45s cubic-bezier(.3,1.4,.5,1);min-width:14px}
@@ -449,6 +451,28 @@ function initDb(){
   if(store.key) loadRemote();
   setInterval(()=>{ if(!participantMode&&store.key&&["results","analysis"].includes(currentRoute())&&!inFlow) loadRemote(); },30000);
 }
+/* Results and Analysis are for the group only: unlocked on a device with the group key */
+const isAdmin=()=>!!(API && store.key && store.keyOk!==false);
+function lockAdmin(){ store.key=""; store.keyOk=null; store.remote=new Map(); store.consentsRemote=null; try{ localStorage.removeItem(GKEY); }catch(e){} location.hash="#setup"; route(); }
+function vAdmin(){
+  const app=document.getElementById("app"); app.className="wrap"; app.innerHTML="";
+  if(isAdmin()){ location.hash="#results"; return; }
+  const inp=el("input",{type:"password",id:"group-key",placeholder:"Group key",autocomplete:"current-password",style:"max-width:280px"});
+  const msg=el("p",{class:"small",role:"alert",style:"color:var(--bad);font-weight:700"}, store.keyOk===false? "That key wasn't accepted. Check it with your group and try again." : "");
+  const btn=el("button",{class:"primary"},"Unlock");
+  const go=async()=>{ const v=inp.value.trim(); if(!v) return; btn.disabled=true; btn.textContent="Checking…";
+    store.key=v; store.keyOk=null; lsSet(GKEY,v); await loadRemote();
+    if(store.keyOk===true){ location.hash="#results"; route(); }
+    else { const bad=store.keyOk===false; store.key=""; try{ localStorage.removeItem(GKEY); }catch(e){} store.keyOk=bad?false:null;
+      btn.disabled=false; btn.textContent="Unlock"; msg.textContent= bad? "That key wasn't accepted. Check it with your group and try again." : (store.err||"Couldn't reach the Google Sheet. Check the internet connection."); } };
+  btn.addEventListener("click",go); inp.addEventListener("keydown",e=>{ if(e.key==="Enter") go(); });
+  app.append(el("div",{class:"stack-lg fade"},
+    el("div",{class:"stack"},el("h1",{},"Admin"),el("p",{class:"muted"},"Results and Analysis are for the research group. Enter the group key to unlock them on this device.")),
+    !API? el("div",{class:"hint warn small"},"The Google Sheet isn't connected yet (see the README).") :
+    el("div",{class:"card stack"},el("label",{class:"f",for:"group-key"},"Group key"),el("div",{class:"row"},inp,btn),msg),
+    el("div",{},el("a",{href:"#setup",class:"small"},"← Back to Run session"))));
+  setTimeout(()=>inp.focus&&inp.focus(),0);
+}
 function keyCard(){
   if(!API) return el("div",{class:"hint warn small"},"The Google Sheet isn't connected yet. Put its web-app address in config.js (see the README). Until then, sessions are kept on this device.");
   if(store.key&&store.keyOk!==false) return null;
@@ -493,19 +517,19 @@ function sessionOptions(){
   const root=document.getElementById("modal-root"), close=()=>root.innerHTML="";
   const restart=()=>{ close(); clearInterval(tick);
     const now=Date.now();
-    draft={ id:draft.code+"_"+now.toString(36), code:draft.code, group:draft.group, level:draft.level, pilot:draft.pilot, model:draft.model||"", created_at:now, step:"consent",
+    draft={ id:draft.code+"_"+now.toString(36), code:draft.code, group:draft.group, level:draft.level, pilot:draft.pilot, model:draft.model||"", lang:draft.lang, created_at:now, step:"consent",
       tasks:{t1_order:"",t1_seq:[],t2_code:T2_TEMPLATE,t3_code:T3_TEMPLATE}, understanding:{}, questionnaire:{} };
     saveDraft(); show(); };
   const discard=()=>{ close(); clearInterval(tick); clearDraft(); participantMode=false; location.hash="#setup"; route(); };
   root.innerHTML=""; root.appendChild(el("div",{class:"modal",role:"dialog","aria-modal":"true"},
     el("div",{class:"card stack fade"},
-      el("div",{class:"label"},"For the experimenter"),
-      el("h2",{},"Session "+draft.code+" · "+(draft.group==="AI"?"AI group":"Control group")),
-      el("p",{class:"muted small"},"Restart clears this participant's answers and starts again from the consent screen with the same code and group. Stop goes back to Run session and saves nothing."),
+      el("div",{class:"label"},t("xFor")),
+      el("h2",{},t("xSession",draft.code,draft.group)),
+      el("p",{class:"muted small"},t("xExplain")),
       el("div",{class:"stack"},
-        el("button",{class:"primary",onclick:restart},"Restart this session"),
-        el("button",{class:"danger",onclick:discard},"Stop and discard"),
-        el("button",{onclick:close},"Cancel")))));
+        el("button",{class:"primary",onclick:restart},t("xRestart")),
+        el("button",{class:"danger",onclick:discard},t("xStop")),
+        el("button",{onclick:close},t("xCancel"))))));
 }
 function confirmBox(title,text,okLabel,onOk,danger,backLabel){
   const root=document.getElementById("modal-root"); const close=()=>root.innerHTML="";
@@ -536,17 +560,20 @@ function paintBar(extra){
     return;
   }
   const r=currentRoute();
-  bar.append(el("div",{class:"brand"},"Code Understanding Study"),
-    el("nav",{class:"nav"}, [["setup","Run session"],["results","Results"],["analysis","Analysis"]].map(([k,t])=>el("a",{href:"#"+k,"aria-current":r===k?"page":"false"},t))));
+  const items = isAdmin() ? [["setup",t("navRun")],["results","Results"],["analysis","Analysis"]] : [["setup",t("navRun")]];
+  const nav=el("nav",{class:"nav"}, items.map(([k,lab])=>el("a",{href:"#"+k,"aria-current":r===k?"page":"false"},lab)));
+  if(isAdmin()) nav.append(el("button",{type:"button",class:"small",title:"Hide Results and Analysis on this device",onclick:lockAdmin},"Lock"));
+  else nav.append(el("a",{href:"#admin","aria-current":r==="admin"?"page":"false",class:"admin-link"},t("navAdmin")));
+  bar.append(el("div",{class:"brand"},mascot("hi",30),t("siteBrand")), el("div",{class:"row"}, r==="setup"? langSwitch() : null, nav));
 }
 function setProgress(f){ const p=document.getElementById("progress"); if(f==null){ p.hidden=true; return; } p.hidden=false; p.firstChild.style.width=Math.round(f*100)+"%"; }
 function statusInner(){
-  if(!API) return el("div",{class:"hint warn small"},"Not connected to the Google Sheet yet (see README). Sessions are kept on this device.");
+  if(!API) return el("div",{class:"hint warn small"},t("stNotConnected"));
   const pending=store.outbox.filter(x=>x.action==="submit").length;
   if(store.err) return el("div",{class:"hint warn small"},store.err+(pending?" "+pending+" session"+(pending===1?"":"s")+" waiting to upload.":""));
-  if(pending) return el("p",{class:"small muted"},"Uploading "+pending+" session"+(pending===1?"":"s")+" to the group's Google Sheet…");
-  const t=store.lastLoad? " Last refreshed "+new Date(store.lastLoad).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})+"." : "";
-  return el("div",{class:"row"},el("span",{class:"small muted"},"Finished sessions go straight to the group's Google Sheet."+t), store.key? el("button",{class:"small",onclick:()=>loadRemote()},"Refresh") : null);
+  if(pending) return el("p",{class:"small muted"},t("stUploading",pending));
+  const tt=store.lastLoad? " Last refreshed "+new Date(store.lastLoad).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})+"." : "";
+  return el("div",{class:"row"},el("span",{class:"small muted"},t("stOk")+tt), store.key? el("button",{class:"small",onclick:()=>loadRemote()},"Refresh") : null);
 }
 function saveStatus(){ return el("div",{class:"savestatus"},statusInner()); }
 function refreshStatus(){ document.querySelectorAll(".savestatus").forEach(n=>{ n.innerHTML=""; const c=statusInner(); if(c) n.appendChild(c); }); }
@@ -689,17 +716,71 @@ const I18N={
   already:"你已经参加过了", alreadyNote:"谢谢！无需再做任何事。"
  }
 };
-const LANG=()=> (draft&&draft.lang==="zh") ? "zh" : "en";
+const SITE_LANG_KEY="psp404-lang";
+function siteLang(){ const v=lsGet(SITE_LANG_KEY,""); return v==="zh"||v==="en" ? v : defaultLang(); }
+Object.assign(I18N.en,{
+  siteBrand:"Code Understanding Study", navRun:"Run session", navAdmin:"Admin",
+  sTitle:"Run a session", sSub:"Fill this in, then either hand this device to the participant or send them their own link.",
+  sCode:"Participant code", sGroup:"Group", sGroupHint:"Take the next entry from your randomisation list.",
+  sAiGroup:"AI group", sAiGroupSub:"Uses their own AI", sCtrlGroup:"Control group", sCtrlGroupSub:"No AI",
+  sAiApp:"AI app they'll use (optional, e.g. ChatGPT)", sCourses:"Python courses completed", sOne:"One", sTwoPlus:"Two or more",
+  sConsentNote:"The participant reads the information sheet and signs with their initials on the first screen.",
+  sPractice:"Practice / test run", sPracticeSub:"For trying the app or a pilot. It's saved in the sheet but never counted in the Summary or Analysis, and its code can be reused.",
+  sStart:"Start on this device", sMakeLink:"Make a link to send",
+  sLinkNote:"Make a link to send gives this participant their own link with their code and group built in. They open it on their own phone or laptop and go straight to the consent screen, in the language chosen here (they can switch).",
+  sBadCode:"Use a short code like P07.", sTaken:c=>c+" already has a finished session. Pick a new code.",
+  sCodeWarn:c=>c+" already has a finished session. Pick a new code, or tick Practice / test run.",
+  sChooseGroup:"Choose the group.", sChooseLevel:"Choose the number of Python courses.",
+  sUnfinished:c=>"Session "+c+" wasn't finished.", sContinue:"Continue it", sDelete:"Delete",
+  sDelTitle:c=>"Delete "+c+"'s answers?", sDelText:"The unfinished session is removed from this device.",
+  sLinkFor:(c,g,l)=>"Link for "+c+" · "+(g==="AI"?"AI group":"Control group")+" · "+(l==="1"?"one course":"two or more courses"),
+  sSendTo:c=>"Send this to "+c, sLinkOnly:"Only send it to this one person. When they finish, their answers appear in the Google Sheet and on the Results page.",
+  sDone:"Done", sCopyLink:"Copy link", sCopied:"Copied",
+  stNotConnected:"Not connected to the Google Sheet yet (see README). Sessions are kept on this device.",
+  stUploading:n=>"Uploading "+n+" session"+(n===1?"":"s")+" to the group's Google Sheet…", stOk:"Finished sessions go straight to the group's Google Sheet.",
+  xFor:"For the experimenter", xSession:(c,g)=>"Session "+c+" · "+(g==="AI"?"AI group":"Control group"),
+  xExplain:"Restart clears this participant's answers and starts again from the consent screen with the same code and group. Stop goes back to Run session and saves nothing.",
+  xRestart:"Restart this session", xStop:"Stop and discard", xCancel:"Cancel",
+  xSaved:c=>"Session "+c+" is saved. Debrief the participant, then:", xNext:"Start next session"
+});
+Object.assign(I18N.zh,{
+  siteBrand:"代码理解研究", navRun:"开始实验", navAdmin:"管理",
+  sTitle:"开始一次实验", sSub:"填写以下信息，然后把这台设备交给参与者，或发送专属链接给他们。",
+  sCode:"参与者编号", sGroup:"组别", sGroupHint:"按随机分组名单的下一个条目选择。",
+  sAiGroup:"AI 组", sAiGroupSub:"可使用自己的 AI", sCtrlGroup:"对照组", sCtrlGroupSub:"不使用 AI",
+  sAiApp:"将使用的 AI 应用（选填，例如 ChatGPT）", sCourses:"已修读的 Python 课程", sOne:"一门", sTwoPlus:"两门或以上",
+  sConsentNote:"参与者会在第一个页面阅读研究说明，并用姓名缩写签名。",
+  sPractice:"练习 / 测试", sPracticeSub:"用于试用或预实验。数据会保存在表格中，但不会计入汇总或分析，编号也可以重复使用。",
+  sStart:"在这台设备上开始", sMakeLink:"生成专属链接",
+  sLinkNote:"“生成专属链接”会为这位参与者生成包含编号和组别的链接。他们在自己的手机或电脑上打开后，会直接进入知情同意页面，语言与这里选择的一致（他们也可以切换）。",
+  sBadCode:"请使用简短的编号，例如 P07。", sTaken:c=>c+" 已有完成的记录，请换一个编号。",
+  sCodeWarn:c=>c+" 已有完成的记录，请换一个编号，或勾选“练习 / 测试”。",
+  sChooseGroup:"请选择组别。", sChooseLevel:"请选择已修读的 Python 课程数量。",
+  sUnfinished:c=>"编号 "+c+" 的实验尚未完成。", sContinue:"继续", sDelete:"删除",
+  sDelTitle:c=>"删除 "+c+" 的答案？", sDelText:"这次未完成的实验将从本设备上删除。",
+  sLinkFor:(c,g,l)=>c+" 的链接 · "+(g==="AI"?"AI 组":"对照组")+" · "+(l==="1"?"一门课程":"两门或以上课程"),
+  sSendTo:c=>"把链接发给 "+c, sLinkOnly:"只发给这一位参与者。他们完成后，答案会出现在 Google 表格和结果页中。",
+  sDone:"完成", sCopyLink:"复制链接", sCopied:"已复制",
+  stNotConnected:"尚未连接 Google 表格（见 README），实验数据暂存在本设备。",
+  stUploading:n=>"正在上传 "+n+" 条记录到小组的 Google 表格…", stOk:"完成的实验会直接保存到小组的 Google 表格。",
+  xFor:"实验人员", xSession:(c,g)=>"编号 "+c+" · "+(g==="AI"?"AI 组":"对照组"),
+  xExplain:"“重新开始”会清除这位参与者的答案，并用相同的编号和组别从知情同意页面重新开始。“停止”会返回开始实验页面，不保存任何内容。",
+  xRestart:"重新开始这次实验", xStop:"停止并放弃", xCancel:"取消",
+  xSaved:c=>"编号 "+c+" 已保存。请向参与者说明研究情况，然后：", xNext:"开始下一次实验"
+});
+const LANG=()=> draft&&draft.lang ? (draft.lang==="zh"?"zh":"en") : siteLang();
 function t(k,...a){ const v=(I18N[LANG()][k]!==undefined)? I18N[LANG()][k] : I18N.en[k]; return typeof v==="function"? v(...a) : v; }
 function langSwitch(){
   return el("div",{class:"langswitch",role:"group","aria-label":"Language · 语言"},
-    [["en","EN"],["zh","中文"]].map(([v,lab])=>el("button",{type:"button","aria-pressed":String(LANG()===v),onclick:()=>{ if(LANG()===v) return; draft.lang=v; saveDraft(); show(); }},lab)));
+    [["en","EN"],["zh","中文"]].map(([v,lab])=>el("button",{type:"button","aria-pressed":String(LANG()===v),onclick:()=>{
+      if(LANG()===v) return; lsSet(SITE_LANG_KEY,v);
+      if(draft && participantMode){ draft.lang=v; saveDraft(); show(); } else route(); }},lab)));
 }
 
 function show(){
   clearInterval(tick);
   if(!draft){ participantMode=false; setProgress(null); document.documentElement.lang="en"; return route(); }
-  if(!draft.lang){ draft.lang=defaultLang(); saveDraft(); }
+  if(!draft.lang){ draft.lang=siteLang(); saveDraft(); }
   document.documentElement.lang = LANG()==="zh" ? "zh-CN" : "en";
   participantMode = draft.step!=="done" || !!draft.remote;
   const i=Math.max(0,STEPS.indexOf(draft.step));
@@ -1052,18 +1133,18 @@ function sDone(){
       el("p",{class:"small muted"},...t("yourCode",draft.code))),
     uploadLine(),
     el("div",{class:"card stack"},
-      el("div",{class:"label"},"For the experimenter"),
-      el("p",{},"Session "+draft.code+" is saved. Debrief the participant, then:"),
+      el("div",{class:"label"},t("xFor")),
+      el("p",{},t("xSaved",draft.code)),
       el("div",{class:"row"},
-        el("button",{class:"primary",onclick:()=>{ clearDraft(); document.documentElement.lang="en"; location.hash="#setup"; show(); }},"Start next session"),
-        el("button",{onclick:()=>{ clearDraft(); document.documentElement.lang="en"; location.hash="#results"; show(); }},"Go to results"))));
+        el("button",{class:"primary",onclick:()=>{ clearDraft(); location.hash="#setup"; show(); }},t("xNext")),
+        isAdmin()? el("button",{onclick:()=>{ clearDraft(); document.documentElement.lang="en"; location.hash="#results"; show(); }},"Go to results") : null)));
 }
 
 /* ---------- run session (experimenter) ---------- */
 function nextCode(){ const n=allSessions().map(s=>s.code).concat(lsGet(ISSUED_KEY,[])).filter(c=>/^P\d+$/.test(c)).map(c=>+c.slice(1)); return "P"+String(n.length?Math.max(...n)+1:1).padStart(2,"0"); }
 function b64(o){ return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
 function unb64(t){ t=t.replace(/-/g,"+").replace(/_/g,"/"); while(t.length%4) t+="="; return JSON.parse(decodeURIComponent(escape(atob(t)))); }
-function participantLink(st){ return location.origin+location.pathname+"?join="+b64({c:st.code,g:st.group==="AI"?"a":"c",l:st.level,p:st.pilot?1:0,m:st.model||""}); }
+function participantLink(st){ return location.origin+location.pathname+"?join="+b64({c:st.code,g:st.group==="AI"?"a":"c",l:st.level,p:st.pilot?1:0,m:st.model||"",lang:siteLang()}); }
 function joinFromLink(){
   const t=new URLSearchParams(location.search).get("join"); if(!t) return false;
   let j; try{ j=unb64(t); }catch(e){ return false; }
@@ -1075,12 +1156,13 @@ function joinFromLink(){
     return true;
   }
   const now=Date.now();
-  draft={ id:j.c+"_"+now.toString(36), code:j.c, group:j.g==="a"?"AI":"Control", level:j.l==="2+"?"2+":"1", pilot:!!j.p, model:j.m||"", remote:true, lang:defaultLang(), created_at:now, step:"consent",
+  draft={ id:j.c+"_"+now.toString(36), code:j.c, group:j.g==="a"?"AI":"Control", level:j.l==="2+"?"2+":"1", pilot:!!j.p, model:j.m||"", remote:true, lang:(j.lang==="zh"||j.lang==="en")?j.lang:defaultLang(), created_at:now, step:"consent",
     tasks:{t1_order:"",t1_seq:[],t2_code:T2_TEMPLATE,t3_code:T3_TEMPLATE}, understanding:{}, questionnaire:{} };
   saveDraft(); show(); return true;
 }
 function vSetup(){
   const app=document.getElementById("app"); app.className="wrap"; app.innerHTML="";
+  document.documentElement.lang = LANG()==="zh" ? "zh-CN" : "en";
   // the form remembers what you've entered until a session starts or a link is made
   const FORM_KEY="psp404-setup-form";
   const st=Object.assign({code:"",group:"",level:"",pilot:false,model:""}, lsGet(FORM_KEY,{}));
@@ -1089,56 +1171,53 @@ function vSetup(){
   if(!st.code) st.code=nextCode();
   const keep=()=>lsSet(FORM_KEY,st);
   const codeWarn=el("span",{class:"small",style:"color:var(--warn);font-weight:700",role:"status"});
-  const codeNote=()=>{ codeWarn.textContent = st.code && !st.pilot && used(st.code) ? st.code+" already has a finished session. Pick a new code, or tick Practice / test run." : ""; };
+  const codeNote=()=>{ codeWarn.textContent = st.code && !st.pilot && used(st.code) ? t("sCodeWarn",st.code) : ""; };
   const clearForm=()=>{ try{ localStorage.removeItem(FORM_KEY); }catch(e){} };
   const err=el("p",{class:"small",style:"color:var(--bad)",role:"alert"});
-  const modelRow=el("label",{class:"f",hidden:true},"AI app they'll use (optional, e.g. ChatGPT app)",el("input",{type:"text",id:"s-model",value:st.model||"",placeholder:"e.g. ChatGPT app",style:"max-width:260px",oninput:e=>{ st.model=e.target.value.trim(); keep(); }}));
+  const modelRow=el("label",{class:"f",hidden:true},t("sAiApp"),el("input",{type:"text",id:"s-model",value:st.model||"",placeholder:"ChatGPT",style:"max-width:260px",oninput:e=>{ st.model=e.target.value.trim(); keep(); }}));
   modelRow.hidden = st.group!=="AI";
   const check=()=>{
-    if(!/^[A-Za-z0-9_-]{1,20}$/.test(st.code)) return err.textContent="Use a short code like P07.";
-    if(!st.pilot && used(st.code)) return err.textContent=st.code+" already has a finished session. Pick a new code.";
-    if(!st.group) return err.textContent="Choose the group.";
-    if(!st.level) return err.textContent="Choose the number of Python courses.";
+    if(!/^[A-Za-z0-9_-]{1,20}$/.test(st.code)) return err.textContent=t("sBadCode");
+    if(!st.pilot && used(st.code)) return err.textContent=t("sTaken",st.code);
+    if(!st.group) return err.textContent=t("sChooseGroup");
+    if(!st.level) return err.textContent=t("sChooseLevel");
     err.textContent=""; return true;
   };
   const makeLink=()=>{
     if(check()!==true) return;
     const url=participantLink(st), issued=lsGet(ISSUED_KEY,[]); if(!issued.includes(st.code)){ issued.push(st.code); lsSet(ISSUED_KEY,issued); }
     const box=el("textarea",{readonly:true,style:"min-height:90px;font-family:var(--mono);font-size:13px"}); box.value=url;
-    const copy=el("button",{class:"primary",onclick:()=>{ box.select(); try{ navigator.clipboard.writeText(url).then(()=>copy.textContent="Copied",()=>{}); }catch(e){} }},"Copy link");
+    const copy=el("button",{class:"primary",onclick:()=>{ box.select(); try{ navigator.clipboard.writeText(url).then(()=>copy.textContent=t("sCopied"),()=>{}); }catch(e){} }},t("sCopyLink"));
     const root=document.getElementById("modal-root");
     root.innerHTML=""; root.appendChild(el("div",{class:"modal",role:"dialog","aria-modal":"true"},el("div",{class:"card stack fade"},
-      el("div",{class:"label"},"Link for "+st.code+" · "+(st.group==="AI"?"AI group":"Control group")+" · "+(st.level==="1"?"one course":"two or more courses")),
-      el("h2",{},"Send this to "+st.code),
-      el("p",{class:"small muted"},"Only send it to this one person. When they finish, their answers appear in the Google Sheet and on the Results page."),
-      box, el("div",{class:"row",style:"justify-content:flex-end"},el("button",{onclick:()=>{ root.innerHTML=""; clearForm(); vSetup(); }},"Done"),copy))));
+      el("div",{class:"label"},t("sLinkFor",st.code,st.group,st.level)),
+      el("h2",{},t("sSendTo",st.code)),
+      el("p",{class:"small muted"},t("sLinkOnly")),
+      box, el("div",{class:"row",style:"justify-content:flex-end"},el("button",{onclick:()=>{ root.innerHTML=""; clearForm(); vSetup(); }},t("sDone")),copy))));
   };
   const start=()=>{
-    if(!/^[A-Za-z0-9_-]{1,20}$/.test(st.code)) return err.textContent="Use a short code like P07.";
-    if(!st.pilot && allSessions().some(s=>s.code===st.code&&!s.pilot)) return err.textContent=st.code+" is already used.";
-    if(!st.group) return err.textContent="Choose the group.";
-    if(!st.level) return err.textContent="Choose the number of Python courses.";
+    if(check()!==true) return;
     const now=Date.now();
-    draft={ id:st.code+"_"+now.toString(36), code:st.code, group:st.group, level:st.level, pilot:st.pilot, model:st.group==="AI"?st.model:"", created_at:now, step:"consent",
+    draft={ id:st.code+"_"+now.toString(36), code:st.code, group:st.group, level:st.level, pilot:st.pilot, model:st.group==="AI"?st.model:"", lang:siteLang(), created_at:now, step:"consent",
       tasks:{t1_order:"",t1_seq:[],t2_code:T2_TEMPLATE,t3_code:T3_TEMPLATE}, understanding:{}, questionnaire:{} };
     clearForm(); saveDraft(); show();
   };
   app.append(el("div",{class:"stack-lg fade"},
-    el("div",{class:"stack"},el("h1",{},"Run a session"),el("p",{class:"muted"},"Fill this in, then either hand this device to the participant or send them their own link.")),
-    draft&&draft.step!=="done"? el("div",{class:"hint warn spread"},el("span",{},"Session "+draft.code+" wasn't finished."),
-      el("div",{class:"row"},el("button",{class:"primary",onclick:show},"Continue it"),el("button",{class:"danger",onclick:()=>confirmBox("Delete "+draft.code+"'s answers?","The unfinished session is removed from this device.","Delete",()=>{ clearDraft(); vSetup(); },true)},"Delete"))) : null,
+    el("div",{class:"stack"},el("h1",{},t("sTitle")),el("p",{class:"muted"},t("sSub"))),
+    draft&&draft.step!=="done"? el("div",{class:"hint warn spread"},el("span",{},t("sUnfinished",draft.code)),
+      el("div",{class:"row"},el("button",{class:"primary",onclick:show},t("sContinue")),el("button",{class:"danger",onclick:()=>confirmBox(t("sDelTitle",draft.code),t("sDelText"),t("sDelete"),()=>{ clearDraft(); vSetup(); },true,t("goBack"))},t("sDelete")))) : null,
     el("div",{class:"card stack-lg"},
-      el("label",{class:"f"},"Participant code",el("input",{type:"text",id:"s-code",value:st.code,style:"max-width:180px;font-family:var(--mono)",oninput:e=>{ st.code=e.target.value.trim(); keep(); codeNote(); }}),codeWarn),
-      el("div",{class:"stack"},el("span",{class:"f"},"Group"),el("span",{class:"small muted"},"Take the next entry from your randomisation list."),
-        choices([["AI","AI group","Uses their own AI"],["Control","Control group","No AI"]],st.group,v=>{ st.group=v; modelRow.hidden=v!=="AI"; keep(); })),
+      el("label",{class:"f"},t("sCode"),el("input",{type:"text",id:"s-code",value:st.code,style:"max-width:180px;font-family:var(--mono)",oninput:e=>{ st.code=e.target.value.trim(); keep(); codeNote(); }}),codeWarn),
+      el("div",{class:"stack"},el("span",{class:"f"},t("sGroup")),el("span",{class:"small muted"},t("sGroupHint")),
+        choices([["AI",t("sAiGroup"),t("sAiGroupSub")],["Control",t("sCtrlGroup"),t("sCtrlGroupSub")]],st.group,v=>{ st.group=v; modelRow.hidden=v!=="AI"; keep(); })),
       modelRow,
-      el("div",{class:"stack"},el("span",{class:"f"},"Python courses completed"),
-        choices([["1","One"],["2+","Two or more"]],st.level,v=>{ st.level=v; keep(); })),
-      el("p",{class:"small muted"},"The participant reads the information sheet and signs with their initials on the first screen."),
+      el("div",{class:"stack"},el("span",{class:"f"},t("sCourses")),
+        choices([["1",t("sOne")],["2+",t("sTwoPlus")]],st.level,v=>{ st.level=v; keep(); })),
+      el("p",{class:"small muted"},t("sConsentNote")),
       el("label",{class:"check"},el("input",{type:"checkbox",id:"s-pilot",checked:!!st.pilot,onchange:e=>{ st.pilot=e.target.checked; keep(); codeNote(); }}),
-        el("span",{},el("b",{},"Practice / test run"),el("br"),el("span",{class:"small muted"},"For trying the app or a pilot. It's saved in the sheet but never counted in the Summary or Analysis, and its code can be reused.")))),
-    (setTimeout(codeNote,0), err), el("div",{class:"row"},el("button",{class:"primary big",onclick:start},"Start on this device"),el("button",{class:"big",onclick:makeLink},"Make a link to send")),
-    el("p",{class:"small muted"},"Make a link to send gives this participant their own link with their code and group built in. They open it on their own phone or laptop and go straight to the consent screen."),
+        el("span",{},el("b",{},t("sPractice")),el("br"),el("span",{class:"small muted"},t("sPracticeSub"))))),
+    (setTimeout(codeNote,0), err), el("div",{class:"row"},el("button",{class:"primary big",onclick:start},t("sStart")),el("button",{class:"big",onclick:makeLink},t("sMakeLink"))),
+    el("p",{class:"small muted"},t("sLinkNote")),
     saveStatus()));
 }
 
@@ -1384,9 +1463,9 @@ function moreCard(A,C){
 }
 
 /* ---------- routing ---------- */
-const ROUTES={setup:vSetup,results:vResults,analysis:vAnalysis};
-function currentRoute(){ const h=location.hash.slice(1); return ROUTES[h]?h:"setup"; }
-function route(){ inFlow=false; participantMode=false; setProgress(null); paintBar(); ROUTES[currentRoute()](); }
+const ROUTES={setup:vSetup,results:vResults,analysis:vAnalysis,admin:vAdmin};
+function currentRoute(){ const h=location.hash.slice(1); if(!ROUTES[h]) return "setup"; if((h==="results"||h==="analysis")&&!isAdmin()) return "admin"; return h; }
+function route(){ inFlow=false; participantMode=false; setProgress(null); const r=currentRoute(); if(location.hash.slice(1)!==r && r==="admin") history.replaceState(null,"","#admin"); paintBar(); ROUTES[r](); }
 function redraw(){ document.getElementById("modal-root").innerHTML=""; route(); }
 let pending=false;
 function typing(){ const a=document.activeElement; return a&&a.closest&&a.closest("#app")&&/^(INPUT|TEXTAREA)$/.test(a.tagName); }
@@ -1396,7 +1475,7 @@ function dataChanged(){
   const app=document.getElementById("app");
   if(app.querySelector(".modal")) return;
   const r=currentRoute();
-  if(r==="setup"){ return; }
+  if(r==="setup"||r==="admin"){ return; }
   if(typing()){ pending=true; return; }
   if(inFlow) return; // never jump out of a marking screen
   const y=window.scrollY; ROUTES[r](); window.scrollTo(0,y);
