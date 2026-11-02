@@ -16,6 +16,11 @@
  */
 
 const GROUP_KEY = 'change-me';   // <- change this in YOUR copy of the script; never commit the real key
+
+// Only needed if you made this script at script.google.com instead of from the sheet
+// (Extensions > Apps Script). Paste the sheet's ID: the long code in the sheet's address
+// between /d/ and /edit, e.g. https://docs.google.com/spreadsheets/d/THIS_PART/edit
+const SHEET_ID = '';
 const VERSION = 1;
 
 const SESSIONS = 'Sessions', CONSENTS = 'Consents', SUMMARY = 'Summary';
@@ -201,12 +206,25 @@ function listConsents() {
 /* ---------------- sheet set-up ---------------- */
 
 function setup() {
+  const book = ss_();
   ensureSetup();
-  Logger.log('Ready. Sheets: Sessions, Consents, Summary. Now deploy as a web app (see README).');
+  Logger.log('Done. The sheet "' + book.getName() + '" now has the tabs: ' +
+    book.getSheets().map(function (s) { return s.getName(); }).join(', ') +
+    '. Open (or refresh) that sheet to see them, then deploy as a web app (see README).');
+}
+
+// The spreadsheet this script writes to.
+function ss_() {
+  let book = null;
+  try { book = SpreadsheetApp.getActiveSpreadsheet(); } catch (e) { book = null; }
+  if (!book && SHEET_ID) book = SpreadsheetApp.openById(SHEET_ID);
+  if (!book) throw new Error('This script is not attached to a Google Sheet. Either open your sheet and use Extensions > Apps Script, ' +
+    'or paste the sheet ID into SHEET_ID at the top of this script, then run setup again.');
+  return book;
 }
 
 function ensureSetup() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = ss_();
   if (!ss.getSheetByName(SESSIONS)) {
     const sh = ss.insertSheet(SESSIONS, 0);
     sh.getRange(1, 1, 1, COLUMNS.length).setValues([COLUMNS.map(function (c) { return c[1]; })]).setFontWeight('bold').setWrap(true).setVerticalAlignment('top');
@@ -282,7 +300,7 @@ function finalFormula(col, q, r) {
 
 /* ---------------- helpers ---------------- */
 
-function sheet(name) { return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name); }
+function sheet(name) { return ss_().getSheetByName(name); }
 function columnMap(sh) {
   const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
   const col = {};

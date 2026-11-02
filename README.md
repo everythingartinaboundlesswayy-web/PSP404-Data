@@ -23,6 +23,10 @@ The sheet's **Summary** tab shows, for each measure, n, median and mean for AI a
 2. In the sheet: **Extensions → Apps Script**. Delete the code that's there and paste in everything from [`apps-script/Code.gs`](apps-script/Code.gs).
 3. Near the top, change `GROUP_KEY = 'change-me'` to a phrase only your group knows. **Only change it in Google, never in this GitHub repository.**
 4. Click **Save**, choose the `setup` function in the toolbar and click **Run**. Allow access when Google asks. Three tabs appear in the sheet: Summary, Sessions, Consents.
+   **No tabs?** Check the *Execution log* at the bottom of the Apps Script editor:
+   - It says **"Done. The sheet … now has the tabs"**: refresh the Google Sheet's browser tab.
+   - It says **"not attached to a Google Sheet"**: the script was made at script.google.com rather than from the sheet. Either paste the sheet's ID (the code between `/d/` and `/edit` in the sheet's address) into `SHEET_ID` near the top and run `setup` again, or start again from the sheet with **Extensions → Apps Script**.
+   - Nothing happened: make sure the function picked in the toolbar is **`setup`** (not `doGet` or `myFunction`) and that you finished the *Allow access* pop-ups.
 5. Click **Deploy → New deployment**, choose type **Web app**, set *Execute as*: **Me** and *Who has access*: **Anyone**, then **Deploy**. Copy the **Web app URL** (it ends in `/exec`).
 
 ### 2. Connect the app to the sheet
