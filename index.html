@@ -925,18 +925,19 @@ function vSetup(){
   // the form remembers what you've entered until a session starts or a link is made
   const FORM_KEY="psp404-setup-form";
   const st=Object.assign({code:"",group:"",level:"",pilot:false,model:""}, lsGet(FORM_KEY,{}));
-  const used=c=>allSessions().some(s=>s.code===c&&!s.pilot) || lsGet(ISSUED_KEY,[]).includes(c);
+  // only a finished, counted session makes a code unavailable; links made while trying the form don't
+  const used=c=>allSessions().some(s=>s.code===c&&!s.pilot);
   if(!st.code) st.code=nextCode();
   const keep=()=>lsSet(FORM_KEY,st);
   const codeWarn=el("span",{class:"small",style:"color:var(--warn);font-weight:700",role:"status"});
-  const codeNote=()=>{ codeWarn.textContent = st.code && !st.pilot && used(st.code) ? st.code+" has already been used. Pick a new code, or tick Practice / test run." : ""; };
+  const codeNote=()=>{ codeWarn.textContent = st.code && !st.pilot && used(st.code) ? st.code+" already has a finished session. Pick a new code, or tick Practice / test run." : ""; };
   const clearForm=()=>{ try{ localStorage.removeItem(FORM_KEY); }catch(e){} };
   const err=el("p",{class:"small",style:"color:var(--bad)",role:"alert"});
   const modelRow=el("label",{class:"f",hidden:true},"AI app they'll use (optional, e.g. ChatGPT app)",el("input",{type:"text",id:"s-model",value:st.model||"",placeholder:"e.g. ChatGPT app",style:"max-width:260px",oninput:e=>{ st.model=e.target.value.trim(); keep(); }}));
   modelRow.hidden = st.group!=="AI";
   const check=()=>{
     if(!/^[A-Za-z0-9_-]{1,20}$/.test(st.code)) return err.textContent="Use a short code like P07.";
-    if(!st.pilot && (allSessions().some(s=>s.code===st.code&&!s.pilot) || lsGet(ISSUED_KEY,[]).includes(st.code))) return err.textContent=st.code+" is already used.";
+    if(!st.pilot && used(st.code)) return err.textContent=st.code+" already has a finished session. Pick a new code.";
     if(!st.group) return err.textContent="Choose the group.";
     if(!st.level) return err.textContent="Choose the number of Python courses.";
     err.textContent=""; return true;
