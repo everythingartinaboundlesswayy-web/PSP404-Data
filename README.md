@@ -56,6 +56,19 @@ Tick **Practice run** for pilots; practice rows are never counted.
 - If a participant on their own device can't reach the sheet, their finish screen keeps trying and, after a few seconds, offers **Copy my answers**. They send you the text (for example on WeChat); in **Admin → Results → Backup and import → Answers sent by message**, paste it and choose **Add pasted answers**. A session that later arrives twice is only stored once.
 - Before sending links, open one on a phone using mobile data without a VPN to see what participants will see.
 
+## The open link (the study's address)
+- Anyone who opens the site without the Admin key sees one question (how many Python courses), then the app places them in a group. **Nobody chooses their group.**
+- Placement: only into a group that still has room; the smaller group first; at random when both are the same size. The same device always gets the same place back, and a device that has finished is told so.
+- **Admin → Run session → Open link** shows each group's places (finished sessions, plus people who started in the last 2 hours), lets you change *Places per group*, and close or reopen the link. When both groups are full, the link says the study is full.
+- If the Google Sheet can't be reached (for example in mainland China without a VPN), the participant is asked to check their connection and try again; they are never placed on their own device.
+- Each session records how its group was set (**Group set by**: assigned by you, they chose, placed by the app). Set it for older sessions in Results → session. Analysis can leave out sessions where the participant chose the group.
+
+## Updating the script (needed once for the open link)
+1. In your Google Sheet: **Extensions → Apps Script**. Copy your current `GROUP_KEY` line somewhere safe.
+2. Replace all the code with `apps-script/Code.gs` from this repository, then put your `GROUP_KEY` line back (and `SHEET_ID`, if you had set it). Save.
+3. Choose **setup** in the function menu and click **Run** (allow access if asked). This adds the **Places** tab and the **Group set by** column; nothing is deleted.
+4. **Deploy → Manage deployments →** the pencil (Edit) **→ Version: New version → Deploy.** The web-app address stays the same, so `config.js` and the participant link don't change.
+
 ## Marking and results
 
 Open **Results** and enter the group key once on each experimenter's device.

@@ -254,7 +254,7 @@ details.tip{border-color:var(--sun);background:var(--sun-soft)}
 .tools-r input[type=text]{max-width:180px;padding:8px 12px;border-radius:999px}
 select{font:inherit;font-weight:700;font-size:.9rem;color:var(--ink);background:var(--surface);border:1.5px solid var(--line-strong);border-radius:999px;padding:8px 12px}
 .rt{border:1.5px solid var(--line);border-radius:18px;background:var(--surface);overflow:hidden}
-.rt-row{display:grid;grid-template-columns:76px 84px 62px minmax(150px,1fr) minmax(150px,1fr) 56px 56px 112px;gap:10px;align-items:center;
+.rt-row{display:grid;grid-template-columns:76px 104px 62px minmax(150px,1fr) minmax(150px,1fr) 56px 56px 112px;gap:10px;align-items:center;
   width:100%;text-align:left;font-weight:600;border:0;border-radius:0;box-shadow:none;background:none;padding:10px 16px}
 .rt-row:active:not(:disabled){transform:none;box-shadow:none}
 .rt-row+.rt-row{border-top:1.5px solid var(--line)}
@@ -263,6 +263,8 @@ button.rt-row:hover{background:var(--raised)}
 .rt-row.dim>*:not(.rt-st){opacity:.55}
 .rt-head{font-size:.78rem;font-weight:800;color:var(--muted);padding-block:9px;background:var(--raised)}
 .rt-code{font-family:var(--mono);font-size:.95rem}
+.chip .chose{font-style:normal;font-size:.68rem;font-weight:800;margin-left:5px;opacity:.75}
+.choices.three{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 .rt-time{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.9rem}
 .rt-row [data-l]::before{display:none}
 .bar-cell{display:inline-flex;align-items:center;gap:8px}
@@ -294,6 +296,7 @@ button.rt-row:hover{background:var(--raised)}
 }
 .mk-prog{display:grid;grid-template-columns:132px 1fr 70px;gap:10px;align-items:center}
 .mk-prog.me .label{color:var(--ink)}
+.mk-prog.places{grid-template-columns:120px 1fr auto}
 .meter{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
 .meter i{display:block;height:100%;background:var(--jade-deep);border-radius:99px}
 .nums{font-family:var(--mono);font-variant-numeric:tabular-nums}
@@ -625,7 +628,7 @@ async function flush(){
 function queue(item){ store.outbox.push(item); lsSet(OUTBOX_KEY,store.outbox); flush(); }
 setInterval(flush,15000); window.addEventListener("online",flush);
 function saveSession(s){ s.updated_at=Date.now(); saveLocal(s); queue({action:"submit",session:s}); return Promise.resolve(); }
-function patchOf(s){ return { marks:s.marks||{}, ai:s.ai||{}, notes:s.notes||"", excluded:!!s.excluded, scores:s.scores||undefined, q3:s.q3 }; }
+function patchOf(s){ return { marks:s.marks||{}, ai:s.ai||{}, notes:s.notes||"", excluded:!!s.excluded, scores:s.scores||undefined, q3:s.q3, assigned:s.assigned||"" }; }
 async function pushUpdate(s){
   if(!API||!store.key) return;
   try{ const r=await api({action:"update",key:store.key,id:s.id,patch:patchOf(s)}); if(!r.ok) throw new Error(r.error); store.err=""; }
@@ -769,7 +772,7 @@ let participantMode=false;
 function paintBar(extra){
   const bar=document.getElementById("bar"); bar.innerHTML="";
   if(participantMode){
-    const opts= draft&&draft.remote ? el("span",{class:"pill small"},draft.code) : el("button",{type:"button",class:"small","aria-label":"Experimenter options",title:"Experimenter options",onclick:sessionOptions},(draft?draft.code:"")+" ⋯");
+    const opts= !draft ? null : draft.remote ? el("span",{class:"pill small"},draft.code) : el("button",{type:"button",class:"small","aria-label":"Experimenter options",title:"Experimenter options",onclick:sessionOptions},(draft?draft.code:"")+" ⋯");
     bar.parentElement.classList.add("p");
     bar.append(el("div",{class:"brand"},mascot(),el("span",{class:"brand-name"},t("brand"))), el("div",{class:"row",style:"flex-wrap:nowrap"},extra||null,langSwitch(),opts));
     return;
@@ -1011,7 +1014,14 @@ Object.assign(I18N.en,{
   upStuck:"Your answers haven't reached us yet.",
   upCopyHelp:"Keep this page open and it will keep trying. Or tap Copy my answers and send the text to the experimenter, for example on WeChat.",
   copyAnswers:"Copy my answers", copiedAnswers:"Copied. Paste it in a message to the experimenter.", copyAnswersFail:"Couldn't copy. Select the text below and copy it.",
-  byeTitle:"No problem at all", alreadyTitle:"You've already taken part"
+  byeTitle:"No problem at all", alreadyTitle:"You've already taken part",
+  jnTitle:"Welcome to the study", jnSub:"It takes about 20 minutes. First, one quick question.",
+  jnCourses:"How many Python courses have you completed?", jnOne:"One", jnTwo:"Two or more", jnPick:"Please choose one.",
+  jnRandom:"Next, the app places you in one of two groups at random. You don't choose, which keeps the study fair.",
+  jnGo:"Continue", jnWorking:"Finding your place…", jnRetry:"Try again",
+  jnOffline:"We couldn't reach the study's server. Please check your internet connection (in mainland China a VPN may be needed), then try again.",
+  jnFullTitle:"The study is full", jnFullSub:"Thank you for your interest. We already have all the participants we need.",
+  jnClosedTitle:"Not taking part right now", jnClosedSub:"The study isn't taking new participants right now. Thank you for your interest."
 });
 Object.assign(I18N.zh,{
   heroHiTitle:"你好，我是小宝", heroHiSub:"开始之前，先简单看看这项研究。",
@@ -1025,7 +1035,14 @@ Object.assign(I18N.zh,{
   upStuck:"你的答案还没有发送成功。",
   upCopyHelp:"请保持此页面打开，系统会继续重试。你也可以点击“复制我的答案”，把文字发给实验人员（例如通过微信）。",
   copyAnswers:"复制我的答案", copiedAnswers:"已复制，请粘贴发送给实验人员。", copyAnswersFail:"无法复制，请手动选中下面的文字复制。",
-  byeTitle:"没关系", alreadyTitle:"你已经参加过了"
+  byeTitle:"没关系", alreadyTitle:"你已经参加过了",
+  jnTitle:"欢迎参加本研究", jnSub:"全程约 20 分钟。先回答一个简单的问题。",
+  jnCourses:"你修过几门 Python 课程？", jnOne:"一门", jnTwo:"两门或以上", jnPick:"请选择一项。",
+  jnRandom:"接下来，系统会把你随机分到两组中的一组。分组不由你选择，这样研究才公平。",
+  jnGo:"继续", jnWorking:"正在为你分组…", jnRetry:"重试",
+  jnOffline:"无法连接到研究服务器。请检查网络连接（在中国大陆可能需要使用 VPN），然后重试。",
+  jnFullTitle:"本研究名额已满", jnFullSub:"感谢你的关注。我们已经有足够的参与者了。",
+  jnClosedTitle:"暂停招募", jnClosedSub:"本研究目前不再招募新的参与者。感谢你的关注。"
 });
 
 /* the participant's own journey: six balls, the first already done the moment they arrive */
@@ -1519,6 +1536,87 @@ function sDone(){
         isAdmin()? el("button",{onclick:()=>{ clearDraft(); document.documentElement.lang="en"; location.hash="#results"; show(); }},"Go to results") : null)));
 }
 
+/* ---------- open link: the app places each person in a group ---------- */
+const DEVICE_KEY="psp404-device";
+function deviceId(){
+  let d=lsGet(DEVICE_KEY,"");
+  if(!/^[A-Za-z0-9]{8,40}$/.test(d)){ d=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>(b%36).toString(36)).join(""); lsSet(DEVICE_KEY,d); }
+  return d;
+}
+function newDraft(code,group,level,extra){
+  const now=Date.now();
+  return Object.assign({ id:code+"_"+now.toString(36), code, group, level, pilot:false, model:"", lang:siteLang(), created_at:now, step:"consent",
+    tasks:{t1_order:"",t1_seq:[],t2_code:T2_TEMPLATE,t3_code:T3_TEMPLATE}, understanding:{}, questionnaire:{} }, extra||{});
+}
+async function askForPlace(body){
+  const ctl=new AbortController(), tm=setTimeout(()=>ctl.abort(),15000);
+  try{ const r=await fetch(API,{method:"POST",body:JSON.stringify(body),headers:{"Content-Type":"text/plain;charset=utf-8"},signal:ctl.signal}); return await r.json(); }
+  finally{ clearTimeout(tm); }
+}
+function vJoin(opt={}){
+  participantMode=true; clearInterval(tick); paintBar(); setProgress(null);
+  document.documentElement.lang=LANG()==="zh"?"zh-CN":"en";
+  if(!opt.practice&&lsGet(DONE_KEY,[]).length) return goodbye("alreadyTitle","alreadyNote");
+  let level="", busy=false;
+  const err=el("p",{class:"small",role:"alert",style:"color:var(--bad);font-weight:700"});
+  const btn=el("button",{class:"go big"},t("jnGo"));
+  btn.addEventListener("click",async()=>{
+    if(busy) return;
+    if(!level){ err.textContent=t("jnPick"); return; }
+    busy=true; err.textContent=""; btn.disabled=true; btn.textContent=t("jnWorking");
+    let r=null;
+    if(API){ try{ r=await askForPlace({action:"assign",device:deviceId(),lang:siteLang(),level,practice:!!opt.practice}); }catch(e){ r=null; } }
+    busy=false;
+    if(r&&r.ok&&r.full) return screen(panel("jade","bye",t(r.closed?"jnClosedTitle":"jnFullTitle"),t(r.closed?"jnClosedSub":"jnFullSub")));
+    if(r&&r.ok&&r.already) return goodbye("alreadyTitle","alreadyNote");
+    if(r&&r.ok&&r.code&&(r.group==="AI"||r.group==="Control")){
+      draft=newDraft(r.code,r.group,level,opt.practice?{pilot:true,assigned:"practice"}:{remote:true,assigned:"random"});
+      saveDraft(); return show();
+    }
+    btn.disabled=false; btn.textContent=t("jnRetry"); err.textContent=t("jnOffline");
+  });
+  screen(panel("jade","wave",t("jnTitle"),t("jnSub")),
+    el("div",{class:"card stack"},
+      el("span",{class:"f"},t("jnCourses")),
+      choices([["1",t("jnOne")],["2+",t("jnTwo")]],level,v=>{ level=v; err.textContent=""; }),
+      el("p",{class:"clock-note"},svgNode(ICON.people),el("span",{},t("jnRandom")))),
+    err, el("div",{class:"actions"},btn));
+}
+/* Admin: places per group for the open link */
+function openLinkCard(){
+  const url=location.origin+location.pathname, body=el("div",{class:"stack"},el("p",{class:"small muted"},"Loading places from the Google Sheet…"));
+  const card=el("section",{class:"card stack"},
+    el("div",{class:"spread"},el("h2",{},"Open link"),el("code",{class:"small"},url.replace(/^https?:\/\//,""))),
+    el("p",{class:"small muted"},"Anyone who opens the study's address without the Admin key answers one question, then the app places them in a group that still has room: the smaller group first, at random when both are the same size. Nobody chooses, and reopening the link on the same device keeps the same group."),
+    body);
+  const paint=st=>{
+    body.innerHTML="";
+    if(!st||!st.ok){ body.append(el("div",{class:"hint warn small"},st&&/unknown action/.test(st.error||"")?
+      "Your Google Sheet script is the older version, so the open link can't place people yet. Update it: README → Updating the script.":"Couldn't load places from the Google Sheet. Check the connection, then reload.")); return; }
+    const cap=st.places, used=g=>st.counts[g].done+st.counts[g].started, full=g=>cap>0&&used(g)>=cap;
+    const row=(g,lab)=>{ const c=st.counts[g];
+      return el("div",{class:"mk-prog places"},el("span",{class:"label"},lab),
+        el("div",{class:"meter"},el("i",{style:"width:"+(cap?Math.min(100,Math.round(100*used(g)/cap)):0)+"%"})),
+        el("span",{class:"small nums"},c.done+(c.started?" +"+c.started:"")+(cap?" / "+cap:"")+(full(g)?" · full":""))); };
+    const capIn=el("input",{type:"number",min:"0",max:"500",value:String(cap),style:"max-width:90px","aria-label":"Places per group"});
+    const save=async patch=>{ body.style.opacity=".5"; let r=null; try{ r=await api(Object.assign({action:"places",key:store.key},patch)); }catch(e){} body.style.opacity=""; paint(r); };
+    const state= !st.open? "The link is closed: anyone who opens it is told the study isn't taking new participants."
+      : full("AI")&&full("Control")? "Both groups are full, so anyone who opens the link is told the study is full."
+      : full("AI")? "AI is full, so everyone who opens the link now goes to Control (no AI)."
+      : full("Control")? "Control is full, so everyone who opens the link now goes to AI."
+      : "The link is open and placing people.";
+    body.append(row("AI","AI"),row("Control","Control (no AI)"),
+      el("p",{class:"small muted"},"Counted: finished sessions (not practice or excluded), plus anyone who started through the link in the last 2 hours (shown as +)."),
+      el("p",{class:"small",style:"font-weight:700"},state),
+      el("div",{class:"row"},el("span",{class:"small"},"Places per group"),capIn,el("button",{class:"small",onclick:()=>save({places:+capIn.value||0})},"Save"),
+        el("span",{style:"flex:1"}),
+        el("button",{class:"small "+(st.open?"danger":"primary"),onclick:()=>save({open:!st.open})},st.open?"Close the link":"Reopen the link")),
+      el("div",{},el("button",{class:"small",onclick:()=>vJoin({practice:true})},"Try the link as a practice run")));
+  };
+  if(!API||!store.key) paint(null); else apiGet({action:"places",key:store.key}).then(paint,()=>paint(null));
+  return card;
+}
+
 /* ---------- run session (experimenter) ---------- */
 function nextCode(){ const n=allSessions().map(s=>s.code).concat(lsGet(ISSUED_KEY,[])).filter(c=>/^P\d+$/.test(c)).map(c=>+c.slice(1)); return "P"+String(n.length?Math.max(...n)+1:1).padStart(2,"0"); }
 function b64(o){ return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
@@ -1534,11 +1632,12 @@ function joinFromLink(){
     return true;
   }
   const now=Date.now();
-  draft={ id:j.c+"_"+now.toString(36), code:j.c, group:j.g==="a"?"AI":"Control", level:j.l==="2+"?"2+":"1", pilot:!!j.p, model:j.m||"", remote:true, lang:(j.lang==="zh"||j.lang==="en")?j.lang:defaultLang(), created_at:now, step:"consent",
+  draft={ id:j.c+"_"+now.toString(36), code:j.c, group:j.g==="a"?"AI":"Control", level:j.l==="2+"?"2+":"1", pilot:!!j.p, model:j.m||"", remote:true, assigned:"you", lang:(j.lang==="zh"||j.lang==="en")?j.lang:defaultLang(), created_at:now, step:"consent",
     tasks:{t1_order:"",t1_seq:[],t2_code:T2_TEMPLATE,t3_code:T3_TEMPLATE}, understanding:{}, questionnaire:{} };
   saveDraft(); show(); return true;
 }
 function vSetup(){
+  if(!isAdmin()) return vJoin(); // the study's address is the open link: people are placed, never choose
   const app=document.getElementById("app"); app.className="wrap"; app.innerHTML="";
   document.documentElement.lang = LANG()==="zh" ? "zh-CN" : "en";
   // the form remembers what you've entered until a session starts or a link is made
@@ -1576,12 +1675,13 @@ function vSetup(){
   const start=()=>{
     if(check()!==true) return;
     const now=Date.now();
-    draft={ id:st.code+"_"+now.toString(36), code:st.code, group:st.group, level:st.level, pilot:st.pilot, model:st.group==="AI"?st.model:"", lang:siteLang(), created_at:now, step:"consent",
+    draft={ id:st.code+"_"+now.toString(36), code:st.code, group:st.group, level:st.level, pilot:st.pilot, model:st.group==="AI"?st.model:"", assigned:"you", lang:siteLang(), created_at:now, step:"consent",
       tasks:{t1_order:"",t1_seq:[],t2_code:T2_TEMPLATE,t3_code:T3_TEMPLATE}, understanding:{}, questionnaire:{} };
     clearForm(); saveDraft(); show();
   };
   app.append(el("div",{class:"stack-lg fade"},
     el("div",{class:"stack"},el("h1",{},t("sTitle")),el("p",{class:"muted"},t("sSub"))),
+    openLinkCard(),
     draft&&draft.step!=="done"? el("div",{class:"hint warn spread"},el("span",{},t("sUnfinished",draft.code)),
       el("div",{class:"row"},el("button",{class:"primary",onclick:show},t("sContinue")),el("button",{class:"danger",onclick:()=>confirmBox(t("sDelTitle",draft.code),t("sDelText"),t("sDelete"),()=>{ clearDraft(); vSetup(); },true,t("goBack"))},t("sDelete")))) : null,
     el("div",{class:"card stack-lg"},
@@ -1758,7 +1858,7 @@ function rowFor(s){
   return el("button",{type:"button",role:"row",class:"rt-row"+(detailId===s.id?" on":"")+(counted(s)?"":" dim"),"data-id":s.id,onclick:()=>openDetail(s.id),
       "aria-label":"Open "+s.code},
     el("b",{class:"rt-code"},s.code),
-    el("span",{class:"rt-grp"},el("span",{class:"chip "+(ai?"ai":"ctrl")},ai?"AI":"Control")),
+    el("span",{class:"rt-grp"},el("span",{class:"chip "+(ai?"ai":"ctrl"),title:s.assigned?SET_BY[s.assigned]||s.assigned:"How the group was set isn't recorded"},ai?"AI":"Control",s.assigned==="chose"?el("i",{class:"chose"},"chose"):null)),
     el("span",{class:"rt-time","data-l":"H1"},s.time_sec!=null?Math.round(s.time_sec)+" s":"—"),
     el("span",{class:"rt-tests","data-l":"H2"},testsBar(x)),
     el("span",{class:"rt-under","data-l":"H3"},underBar(x)),
@@ -1821,6 +1921,7 @@ function detailBody(s){
     secHead("About them",null),
     el("p",{class:"small muted"},"Python "+(q.python_months??"—")+" months · skill "+(q.python_self_rating??"—")+"/5 · AI use "+(q.ai_tool_use??"—")+"/5 · used Counter before: "+(q.used_counter_before??"—")+
       " · "+(s.level==="2+"?"two or more courses":"one course")+(s.created_at?" · "+new Date(s.created_at).toLocaleString():"")+(q.hard?" · “"+q.hard+"”":"")),
+    assignedChoice(s),
     s.group==="AI"? aiCoding(s) : null,
     el("label",{class:"f"},"Notes",textBox("notes-"+s.id,s.notes,v=>{ s.notes=v; saveSoon(s); })),
     el("div",{class:"row"},
@@ -1829,6 +1930,15 @@ function detailBody(s){
   ];
 }
 
+const SET_BY={you:"Assigned by you",chose:"They chose",random:"Placed by the app",practice:"Practice"};
+function assignedChoice(s){
+  const v=s.assigned||"";
+  return el("div",{class:"stack",style:"gap:8px"},
+    el("span",{class:"f"},"Group set by"),
+    !v? el("p",{class:"small",style:"color:var(--warn);font-weight:700"},"Not recorded. Sessions from before the open link don't say how the group was set: choose one, so Analysis can check results without self-chosen groups.") : null,
+    choices([["you",SET_BY.you,"Your randomisation list or link"],["chose",SET_BY.chose,"They picked AI or no AI"],["random",SET_BY.random,"Through the open link"]],v,
+      x=>{ s.assigned=x; saveSoon(s); dataChanged(); paintDetail(); },"choices three"));
+}
 const TASK_INFO={
   t1:{title:"Task 1 · Put the lines in order",h:"H2"}, t2:{title:"Task 2 · Find and fix the bug",h:"H2"},
   t3:{title:"Task 3 · Finish top_word",h:"H2"}, mod:{title:"Code change · the two most common words",h:"H3"} };
@@ -2042,9 +2152,9 @@ function settleStep(list,i,opt={}){
 
 /* downloads */
 function csvText(){
-  const head=["code","group","level","practice","excluded","date","time_sec","finished","t1_score","t2_score","t3_score","tests_passed","q1_marker1","q1_marker2","q1","q2_marker1","q2_marker2","q2","q3","change_score","change_full","understanding_score","questions_time_sec","python_months","python_self_rating","ai_tool_use","used_counter_before","ai_app","prompts","ai_use_coder1","ai_use_coder2","ai_use","notes"];
+  const head=["code","group","group_set_by","level","practice","excluded","date","time_sec","finished","t1_score","t2_score","t3_score","tests_passed","q1_marker1","q1_marker2","q1","q2_marker1","q2_marker2","q2","q3","change_score","change_full","understanding_score","questions_time_sec","python_months","python_self_rating","ai_tool_use","used_counter_before","ai_app","prompts","ai_use_coder1","ai_use_coder2","ai_use","notes"];
   const rows=allSessions().map(s=>{ const x=d(s), m=s.marks||{}, q=s.questionnaire||{};
-    return [s.code,s.group,s.level,s.pilot?1:0,s.excluded?1:0,new Date(s.created_at).toISOString(),s.time_sec,s.finished?1:0,x.t1,x.t2,x.t3,x.tests,m.q1A,m.q1B,m.q1,m.q2A,m.q2B,m.q2,x.q3,x.mod,x.modFull,x.under,s.u_time_sec,q.python_months,q.python_self_rating,q.ai_tool_use,q.used_counter_before,s.model,s.ai?.prompts,s.ai?.catA,s.ai?.catB,s.ai?.category,s.notes]; });
+    return [s.code,s.group,s.assigned||"",s.level,s.pilot?1:0,s.excluded?1:0,new Date(s.created_at).toISOString(),s.time_sec,s.finished?1:0,x.t1,x.t2,x.t3,x.tests,m.q1A,m.q1B,m.q1,m.q2A,m.q2B,m.q2,x.q3,x.mod,x.modFull,x.under,s.u_time_sec,q.python_months,q.python_self_rating,q.ai_tool_use,q.used_counter_before,s.model,s.ai?.prompts,s.ai?.catA,s.ai?.catB,s.ai?.category,s.notes]; });
   const esc=v=>{ if(v==null) return ""; const t=String(v); return /[",\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t; };
   return [head,...rows].map(r=>r.map(esc).join(",")).join("\n");
 }
@@ -2081,7 +2191,14 @@ function importFile(f){
 /* ---------- analysis ---------- */
 function vAnalysis(){
   const app=document.getElementById("app"); app.className="wrap wide"; app.innerHTML="";
-  const use=allSessions().filter(s=>!s.pilot&&!s.excluded), A=use.filter(s=>s.group==="AI"), C=use.filter(s=>s.group==="Control");
+  const skipChose=!!lsGet("psp404-skip-chose",false), base=allSessions().filter(s=>!s.pilot&&!s.excluded);
+  const nChose=base.filter(s=>s.assigned==="chose").length, nUnknown=base.filter(s=>!s.assigned).length;
+  const use=base.filter(s=>!(skipChose&&s.assigned==="chose")), A=use.filter(s=>s.group==="AI"), C=use.filter(s=>s.group==="Control");
+  const choseCard=(nChose||nUnknown)? el("div",{class:"card stack"},
+    el("h2",{},"Groups the participants chose"),
+    el("p",{class:"small muted"},nChose+" counted session"+(nChose===1?"":"s")+" had their group chosen by the participant"+(nUnknown?", and "+nUnknown+" don't say how it was set (set it in Results → session → Group set by)":"")+". Self-chosen groups can differ before the study starts, so check that the results still hold without them, and report it."),
+    el("label",{class:"check"},el("input",{type:"checkbox",checked:skipChose,onchange:e=>{ lsSet("psp404-skip-chose",e.target.checked); vAnalysis(); }}),
+      el("span",{},el("b",{},"Leave out sessions where the participant chose the group")))) : null;
   const H=[
     {title:"H1 · Is the AI group faster?",get:s=>s.time_sec,alt:"less",max:600,unit:"seconds",say:(a,c)=>"AI group median "+fmtN(a,0)+" s, Control "+fmtN(c,0)+" s."},
     {title:"H2 · Does the AI group pass more tests?",get:s=>d(s).tests,alt:"greater",max:10,unit:"tests out of 10",say:(a,c)=>"AI group median "+fmtN(a)+", Control "+fmtN(c)+" (out of 10)."},
@@ -2089,7 +2206,8 @@ function vAnalysis(){
   ];
   app.append(el("div",{class:"stack-lg fade"},
     keyCard(),
-    el("div",{class:"stack"},el("h1",{},"Analysis"),el("p",{class:"muted"},A.length+" AI and "+C.length+" Control participants. Practice runs and excluded sessions aren't counted.")),
+    el("div",{class:"stack"},el("h1",{},"Analysis"),el("p",{class:"muted"},A.length+" AI and "+C.length+" Control participants. Practice runs and excluded sessions aren't counted"+(skipChose&&nChose?", nor the "+nChose+" self-chosen":"")+".")),
+    choseCard,
     !use.length? el("div",{class:"card"},el("p",{class:"muted"},"Results appear here once both groups have finished sessions.")) : null,
     ...(use.length?H.map(h=>hCard(h,A,C)):[]),
     use.length? moreCard(A,C) : null,
