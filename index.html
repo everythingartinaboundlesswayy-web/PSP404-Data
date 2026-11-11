@@ -1015,6 +1015,7 @@ Object.assign(I18N.en,{
   upCopyHelp:"Keep this page open and it will keep trying. Or tap Copy my answers and send the text to the experimenter, for example on WeChat.",
   copyAnswers:"Copy my answers", copiedAnswers:"Copied. Paste it in a message to the experimenter.", copyAnswersFail:"Couldn't copy. Select the text below and copy it.",
   byeTitle:"No problem at all", alreadyTitle:"You've already taken part",
+  forResearchers:"For the research group: sign in",
   jnTitle:"Welcome to the study", jnSub:"It takes about 20 minutes. First, one quick question.",
   jnCourses:"How many Python courses have you completed?", jnOne:"One", jnTwo:"Two or more", jnPick:"Please choose one.",
   jnRandom:"Next, the app places you in one of two groups at random. You don't choose, which keeps the study fair.",
@@ -1036,6 +1037,7 @@ Object.assign(I18N.zh,{
   upCopyHelp:"请保持此页面打开，系统会继续重试。你也可以点击“复制我的答案”，把文字发给实验人员（例如通过微信）。",
   copyAnswers:"复制我的答案", copiedAnswers:"已复制，请粘贴发送给实验人员。", copyAnswersFail:"无法复制，请手动选中下面的文字复制。",
   byeTitle:"没关系", alreadyTitle:"你已经参加过了",
+  forResearchers:"研究小组成员：登录",
   jnTitle:"欢迎参加本研究", jnSub:"全程约 20 分钟。先回答一个简单的问题。",
   jnCourses:"你修过几门 Python 课程？", jnOne:"一门", jnTwo:"两门或以上", jnPick:"请选择一项。",
   jnRandom:"接下来，系统会把你随机分到两组中的一组。分组不由你选择，这样研究才公平。",
@@ -1471,7 +1473,7 @@ function sAbout(){
       const sum=a=>a.reduce((x,y)=>x+y,0); s.scores={t1:sum(r.t1),t2:sum(r.t2),t3:sum(r.t3),mod:sum(r.mod)};
     }catch(e){ /* the Results page checks the code later */ }
     await saveSession(s); draft.saved_id=s.id;
-    const done=lsGet(DONE_KEY,[]); if(!done.includes(draft.code)){ done.push(draft.code); lsSet(DONE_KEY,done); }
+    if(!draft.pilot){ const done=lsGet(DONE_KEY,[]); if(!done.includes(draft.code)){ done.push(draft.code); lsSet(DONE_KEY,done); } }
     go("done");
   };
   const scale=key=>choices([1,2,3,4,5].map(v=>[String(v),String(v)]),q[key]||"",v=>{ q[key]=v; save(); },"scale");
@@ -1553,10 +1555,12 @@ async function askForPlace(body){
   try{ const r=await fetch(API,{method:"POST",body:JSON.stringify(body),headers:{"Content-Type":"text/plain;charset=utf-8"},signal:ctl.signal}); return await r.json(); }
   finally{ clearTimeout(tm); }
 }
+// a quiet way in for the research group on the open-link screens
+const researcherLink=()=>el("p",{class:"small",style:"text-align:center;margin-top:8px"},el("a",{href:"#admin",style:"color:var(--muted)",onclick:e=>{ e.preventDefault(); participantMode=false; if(location.hash==="#admin") route(); else location.hash="#admin"; }},t("forResearchers")));
 function vJoin(opt={}){
   participantMode=true; clearInterval(tick); paintBar(); setProgress(null);
   document.documentElement.lang=LANG()==="zh"?"zh-CN":"en";
-  if(!opt.practice&&lsGet(DONE_KEY,[]).length) return goodbye("alreadyTitle","alreadyNote");
+  if(!opt.practice&&lsGet(DONE_KEY,[]).length){ goodbye("alreadyTitle","alreadyNote"); document.querySelector("#app>div").append(researcherLink()); return; }
   let level="", busy=false;
   const err=el("p",{class:"small",role:"alert",style:"color:var(--bad);font-weight:700"});
   const btn=el("button",{class:"go big"},t("jnGo"));
@@ -1580,7 +1584,7 @@ function vJoin(opt={}){
       el("span",{class:"f"},t("jnCourses")),
       choices([["1",t("jnOne")],["2+",t("jnTwo")]],level,v=>{ level=v; err.textContent=""; }),
       el("p",{class:"clock-note"},svgNode(ICON.people),el("span",{},t("jnRandom")))),
-    err, el("div",{class:"actions"},btn));
+    err, el("div",{class:"actions"},btn), opt.practice?null:researcherLink());
 }
 /* Admin: places per group for the open link */
 function openLinkCard(){
