@@ -21,9 +21,13 @@ const GROUP_KEY = 'change-me';   // <- change this in YOUR copy of the script; n
 // (Extensions > Apps Script). Paste the sheet's ID: the long code in the sheet's address
 // between /d/ and /edit, e.g. https://docs.google.com/spreadsheets/d/THIS_PART/edit
 const SHEET_ID = '';
-const VERSION = 1;
+const VERSION = 2;
 
-const SESSIONS = 'Sessions', CONSENTS = 'Consents', SUMMARY = 'Summary';
+// Open link: people who join through it are placed in a group by this script, never by choice.
+const DEFAULT_PLACES = 5;   // places per group until you change it on the Run session page (Admin)
+const HOLD_MINUTES = 120;   // a place someone has started keeps being held for this long
+
+const SESSIONS = 'Sessions', CONSENTS = 'Consents', SUMMARY = 'Summary', PLACES = 'Places';
 
 // [key, column header, band] — the header text is how columns are found, so don't rename headers.
 const COLUMNS = [
@@ -32,6 +36,7 @@ const COLUMNS = [
   ['group', 'Group', 'who'],
   ['level', 'Python courses', 'who'],
   ['practice', 'Practice run (1 = yes)', 'who'],
+  ['assigned', 'Group set by', 'who'],
   ['excluded', 'Excluded (1 = yes)', 'who'],
   ['date', 'Date', 'who'],
   ['time_sec', 'H1 · Time (s)', 'h1'],
@@ -75,6 +80,7 @@ function doGet(e) {
     if (p.action === 'check') return out({ ok: true });
     if (p.action === 'list') return out({ ok: true, sessions: listSessions() });
     if (p.action === 'consents') return out({ ok: true, consents: listConsents() });
+    if (p.action === 'places') return out(placesStatus());
     return out({ ok: false, error: 'unknown action' });
   } catch (err) {
     return out({ ok: false, error: String(err) });
@@ -89,9 +95,11 @@ function doPost(e) {
     ensureSetup();
     if (body.action === 'submit') return out(submitSession(body.session));
     if (body.action === 'consent') return out(addConsent(body.consent));
+    if (body.action === 'assign') return out(assignPlace(body));
     if (body.key !== GROUP_KEY) return out({ ok: false, error: 'wrong key' });
     if (body.action === 'update') return out(updateSession(body.id, body.patch || {}));
     if (body.action === 'delete') return out(deleteSession(body.id));
+    if (body.action === 'places') return out(setPlaces(body));
     return out({ ok: false, error: 'unknown action' });
   } catch (err) {
     return out({ ok: false, error: String(err) });
@@ -114,7 +122,7 @@ function submitSession(s) {
   const q = s.questionnaire || {};
   const v = {
     id: s.id, code: clean(s.code, 20), group: s.group === 'AI' ? 'AI' : 'Control', level: clean(s.level, 4),
-    practice: s.pilot ? 1 : 0, excluded: 0, date: s.created_at ? new Date(Number(s.created_at)) : new Date(),
+    practice: s.pilot ? 1 : 0, assigned: clean(s.assigned, 12), excluded: 0, date: s.created_at ? new Date(Number(s.created_at)) : new Date(),
     time_sec: num(s.time_sec), finished: s.finished ? 1 : 0,
     t1_score: num(sc.t1), t2_score: num(sc.t2), t3_score: num(sc.t3),
     q3: num(s.q3), change_score: num(sc.mod),
@@ -152,6 +160,7 @@ function updateSession(id, patch) {
   if (ai) { set('prompts', num(ai.prompts)); set('ai_use_coder1', clean(ai.catA, 20)); set('ai_use_coder2', clean(ai.catB, 20)); set('ai_use', clean(ai.category, 20)); }
   if (patch.notes !== undefined) set('notes', clean(patch.notes, 2000));
   if (patch.excluded !== undefined) set('excluded', patch.excluded ? 1 : 0);
+  if (patch.assigned !== undefined) set('assigned', clean(patch.assigned, 12));
   return { ok: true };
 }
 
@@ -174,6 +183,7 @@ function listSessions() {
     s.id = String(g(row, 'id')); s.code = String(g(row, 'code')); s.group = String(g(row, 'group'));
     s.level = String(g(row, 'level')); s.pilot = Number(g(row, 'practice')) === 1; s.excluded = Number(g(row, 'excluded')) === 1;
     s.notes = String(g(row, 'notes') || '');
+    s.assigned = String(g(row, 'assigned') || '') || s.assigned || '';
     s.marks = { q1A: num(g(row, 'q1_marker1')), q1B: num(g(row, 'q1_marker2')), q1: num(g(row, 'q1')),
                 q2A: num(g(row, 'q2_marker1')), q2B: num(g(row, 'q2_marker2')), q2: num(g(row, 'q2')) };
     s.ai = { prompts: num(g(row, 'prompts')), catA: String(g(row, 'ai_use_coder1') || '') || null,
@@ -183,6 +193,64 @@ function listSessions() {
     s.from_sheet = true;
     return s;
   });
+}
+
+/* ---------------- open link: places per group ---------------- */
+// Someone opening the open link is placed in a group with room: the smaller group, or at random when both are the
+// same size. Counted sessions fill places; a place someone has started is held for HOLD_MINUTES.
+
+function settings_() {
+  const p = PropertiesService.getScriptProperties();
+  const cap = p.getProperty('places'), open = p.getProperty('open');
+  return { places: cap === null ? DEFAULT_PLACES : Number(cap), open: open !== '0' };
+}
+function setPlaces(b) {
+  const p = PropertiesService.getScriptProperties();
+  if (b.places !== undefined) { const n = Math.max(0, Math.min(500, Math.floor(Number(b.places) || 0))); p.setProperty('places', String(n)); }
+  if (b.open !== undefined) p.setProperty('open', b.open ? '1' : '0');
+  return placesStatus();
+}
+function placeCounts_() {
+  const sh = sheet(SESSIONS), col = columnMap(sh), last = sh.getLastRow();
+  const c = { AI: { done: 0, started: 0 }, Control: { done: 0, started: 0 } }, codes = {};
+  if (last >= 2) sh.getRange(2, 1, last - 1, sh.getLastColumn()).getValues().forEach(function (r) {
+    const g = String(r[col.group - 1]); codes[String(r[col.code - 1])] = true;
+    if (c[g] && Number(r[col.practice - 1]) !== 1 && Number(r[col.excluded - 1]) !== 1 && r[col.id - 1]) c[g].done++;
+  });
+  const pl = sheet(PLACES), pLast = pl.getLastRow(), now = Date.now();
+  const rows = pLast >= 2 ? pl.getRange(2, 1, pLast - 1, 6).getValues() : [];
+  rows.forEach(function (r) {
+    const when = r[0] instanceof Date ? r[0].getTime() : Number(new Date(r[0]));
+    if (c[r[2]] && !codes[String(r[1])] && now - when < HOLD_MINUTES * 60000) c[r[2]].started++;
+  });
+  return { counts: c, rows: rows, codes: codes };
+}
+function placesStatus() {
+  const st = settings_(), pc = placeCounts_();
+  return { ok: true, places: st.places, open: st.open, counts: pc.counts };
+}
+function assignPlace(b) {
+  const device = String(b.device || '');
+  if (!/^[A-Za-z0-9]{8,40}$/.test(device)) return { ok: false, error: 'bad device' };
+  // a practice run by the group gets a random group and uses no place
+  if (b.practice) return { ok: true, code: 'PR' + Math.floor(Math.random() * 900 + 100), group: Math.random() < 0.5 ? 'AI' : 'Control', practice: true };
+  const st = settings_(), pc = placeCounts_();
+  // the same device always gets the same place back, so reopening the link can't change the group
+  for (let i = 0; i < pc.rows.length; i++) if (String(pc.rows[i][3]) === device) {
+    const code0 = String(pc.rows[i][1]);
+    if (pc.codes[code0]) return { ok: true, already: true }; // this device has already finished
+    return { ok: true, code: code0, group: String(pc.rows[i][2]), again: true };
+  }
+  if (!st.open) return { ok: true, full: true, closed: true };
+  const used = function (g) { return pc.counts[g].done + pc.counts[g].started; };
+  const room = ['AI', 'Control'].filter(function (g) { return !st.places || used(g) < st.places; });
+  if (!room.length) return { ok: true, full: true };
+  let group = room[0];
+  if (room.length === 2) group = used('AI') < used('Control') ? 'AI' : used('Control') < used('AI') ? 'Control' : (Math.random() < 0.5 ? 'AI' : 'Control');
+  let n = pc.rows.length + 1, code;
+  do { code = 'R' + (n < 10 ? '0' : '') + n; n++; } while (pc.codes[code]);
+  sheet(PLACES).appendRow([new Date(), code, group, device, clean(b.lang, 4), clean(b.level, 4)]);
+  return { ok: true, code: code, group: group };
 }
 
 /* ---------------- consents (initials + date only, never linked to answers) ---------------- */
@@ -237,6 +305,16 @@ function ensureSetup() {
     c.getRange(1, 1, 1, 3).setValues([['Date', 'Initials', 'Form']]).setFontWeight('bold');
     c.setFrozenRows(1);
   }
+  if (!ss.getSheetByName(PLACES)) {
+    const p = ss.insertSheet(PLACES);
+    p.getRange(1, 1, 1, 6).setValues([['Date', 'Participant', 'Group', 'Device', 'Language', 'Python courses']]).setFontWeight('bold');
+    p.setFrozenRows(1);
+  }
+  // columns added in later versions go at the end of an existing Sessions tab
+  const sh = ss.getSheetByName(SESSIONS), head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  COLUMNS.forEach(function (c) {
+    if (head.indexOf(c[1]) < 0) { const n = sh.getLastColumn() + 1; sh.getRange(1, n).setValue(c[1]).setFontWeight('bold').setBackground(BAND_COLORS[c[2]]); head.push(c[1]); }
+  });
   if (!ss.getSheetByName(SUMMARY)) buildSummary(ss);
 }
 
