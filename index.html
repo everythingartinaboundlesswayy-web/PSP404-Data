@@ -1914,6 +1914,8 @@ function detailBody(s){
       tile("H1 · Time",s.time_sec!=null?Math.round(s.time_sec)+" s":"—",s.finished?"submitted":"ran out of time"),
       tile("H2 · Tests passed",(x.tests??"…")+" / 10","Task 1 + Task 2 + Task 3"),
       tile("H3 · Understanding",(x.under??"?")+" / 10","Q1 "+(x.q1??"?")+" + Q2 "+(x.q2??"?")+" + Q3 "+x.q3+" + change "+(x.mod??"…"))),
+    s.pilot? el("div",{class:"hint warn small"},el("b",{},"Saved as a practice run, so it isn't counted. "),
+      "If this was a real participant who ticked Practice by mistake, open the Google Sheet, find "+s.code+" in the Sessions tab, and change “Practice run (1 = yes)” from 1 to 0. Then refresh Results and it will count.") : null,
     secHead("H2 · The three tasks","Checked by the computer, so there's nothing to mark. Each test runs their function on one input and compares what it gives back with the right answer. Tests passed is the score."),
     taskCard(s,"t1",x.g?.t1), taskCard(s,"t2",x.g?.t2), taskCard(s,"t3",x.g?.t3),
     secHead("H3 · The questions after the tasks","Q1 and Q2 need a person to mark them. Q3 and the code change are scored automatically."),
