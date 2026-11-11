@@ -86,6 +86,29 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .timer.hidden-clock{padding:6px 9px}
 .timer.hidden-clock .t-num:empty{display:none}
 .timer.low{color:var(--warn);border-color:var(--sun);background:var(--sun-soft)}
+/* which group you're in: on the welcome screen and on every task */
+.grp{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start;padding:18px 20px;border-radius:22px;border:2px solid var(--line);background:var(--surface)}
+.grp p{margin:0}
+.grp.ai{border-color:var(--brand);background:var(--brand-soft)}
+.grp.ctrl{border-color:var(--ctrl);background:var(--ctrl-soft)}
+.grp .gi{width:50px;height:50px;border-radius:15px;display:grid;place-items:center;color:#fff}
+.grp.ctrl .gi{color:var(--surface)}
+.grp .gi svg{width:28px;height:28px}
+.grp.ai .gi{background:var(--spark)} .grp.ctrl .gi{background:var(--ctrl)}
+.grp .gl{font-family:var(--display);font-size:1.4rem;line-height:1.2}
+.gsteps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:4px;font-weight:600}
+.gack{padding:14px 16px;border:2px solid var(--line-strong);border-radius:16px;background:var(--surface)}
+.gstrip{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:10px 12px;border-radius:16px;border:2px solid var(--line)}
+.gstrip.ai{border-color:var(--brand);background:var(--brand-soft)}
+.gstrip.ctrl{border-color:var(--ctrl);background:var(--ctrl-soft)}
+.gtag{display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:.95rem}
+.gtag svg{width:20px;height:20px}
+.gtag svg{flex:none}
+.gstrip.ai .gtag svg{color:var(--spark)} .gstrip.ctrl .gtag svg{color:var(--ctrl)}
+.copybig{display:inline-flex;align-items:center;gap:8px;padding:10px 18px}
+.copybig svg{width:20px;height:20px}
+.copybig.ok{background:var(--go);border-color:var(--go);box-shadow:0 4px 0 var(--ok)}
+.copybox{width:100%;font-family:var(--mono);font-size:13px;line-height:1.5}
 .clock-note{display:flex;gap:10px;align-items:flex-start;margin:0;padding:12px 14px;border-radius:14px;background:var(--jade-soft);color:var(--ink);font-size:.95rem}
 .clock-note svg{width:18px;height:18px;flex:none;margin-top:2px;color:var(--jade-deep)}
 .settle{position:fixed;inset:0;z-index:30;display:grid;place-items:center;align-content:center;gap:8px;padding:24px;text-align:center;background:var(--jade);color:var(--ink)}
@@ -826,7 +849,15 @@ const I18N={
   yes:"I agree, let's start", no:"I don't want to take part",
   declineTitle:"Not taking part?", declineText:"That's completely fine. Nothing you've typed is kept.", declineOk:"Yes, stop here", back:"Back", goBack:"Go back",
   bye:"No problem at all. Thanks for stopping by!", byeNote:"Please let the experimenter know.",
-  aiHero:"You can use your own AI assistant, like ChatGPT on your phone or in another tab. Copy a task and paste it in, any way you like.",
+  aiHero:"For this part you can use your own AI app.",
+  grpAiLabel:"Your group: AI allowed", grpCtrlLabel:"Your group: No AI",
+  grpAiText:"For these three tasks you can use your own AI app, like ChatGPT, DeepSeek, Kimi or Doubao (豆包). Use it however you like.",
+  grpAiSteps:["Open your AI app now, on your phone or in another tab.","On each task, tap the blue “Copy this task for your AI” button.","Paste it into your AI, then put the answer back here."],
+  grpCtrlText:"Please do these three tasks on your own: no AI apps, search engines or websites. If any are open, close them now.",
+  ackAi:"My AI app is open and ready.",
+  stripAi:"AI allowed", copyBig:"Copy this task for your AI", stripAiHint:"Then paste it into your AI app.",
+  stripCtrl:"No AI", stripCtrlHint:"Just you: no AI apps, search engines or websites.",
+  copyBoxTitle:"Copy this task", copyBoxText:"Your browser didn't let us copy it automatically. Press and hold the text below (or use Ctrl+C) to copy it, then paste it into your AI app.", copyBoxDone:"Done",
   ctrlHero:"This part is just you: no AI, search engines or websites, please.",
   welcomeTitle:"Three short tasks, 10 minutes",
   welcomeP1:"Put some lines in order, fix a bug, then finish a function. You can move between the three tasks freely.",
@@ -891,7 +922,15 @@ const I18N={
   yes:"我同意，开始吧", no:"我不想参加",
   declineTitle:"不参加了吗？", declineText:"完全没问题。你填写的内容都不会被保存。", declineOk:"是的，到此为止", back:"返回", goBack:"返回",
   bye:"没关系，感谢你的关注！", byeNote:"请告诉实验人员。",
-  aiHero:"你可以使用自己的 AI 助手，例如手机上或另一个标签页里的 ChatGPT。复制任务粘贴进去，怎么用都可以。",
+  aiHero:"这一部分可以使用你自己的 AI 应用。",
+  grpAiLabel:"你的组别：可以使用 AI", grpCtrlLabel:"你的组别：不使用 AI",
+  grpAiText:"完成这三个任务时，你可以使用自己的 AI 应用，例如 ChatGPT、DeepSeek、Kimi 或豆包。怎么用都可以。",
+  grpAiSteps:["现在打开你的 AI 应用（手机上或另一个标签页）。","在每个任务页面，点击蓝色的“复制任务，发给 AI”按钮。","粘贴到 AI 里，再把答案填回这里。"],
+  grpCtrlText:"请独立完成这三个任务：不要使用 AI 应用、搜索引擎或网站。如果有打开的，请现在关闭。",
+  ackAi:"我的 AI 应用已经打开，准备好了。",
+  stripAi:"可以使用 AI", copyBig:"复制任务，发给 AI", stripAiHint:"然后粘贴到你的 AI 应用里。",
+  stripCtrl:"不使用 AI", stripCtrlHint:"独立完成：不使用 AI 应用、搜索引擎或网站。",
+  copyBoxTitle:"复制这个任务", copyBoxText:"浏览器没能自动复制。请长按下面的文字（或按 Ctrl+C）复制，然后粘贴到你的 AI 应用里。", copyBoxDone:"完成",
   ctrlHero:"这一部分请独立完成：不要使用 AI、搜索引擎或任何网站。",
   welcomeTitle:"三个简短任务，共 10 分钟",
   welcomeP1:"把几行代码排好顺序，修复一个错误，再补全一个函数。三个任务之间可以随意切换。",
@@ -1180,6 +1219,9 @@ function panel(tone,pose,title,sub,extra){
     panda(pose));
 }
 const ICON={
+  spark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>',
+  nospark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l1.6 4.4L18 10l-4.4 1.6L12 16l-1.6-4.4L6 10l4.4-1.6z"/><path d="M3.5 3.5l17 17"/></svg>',
+  copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>',
   clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg>',
   bulb:'<svg viewBox="0 0 24 24" fill="none" stroke="var(--sun-dark)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>',
   grip:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.8"/><circle cx="15" cy="6" r="1.8"/><circle cx="9" cy="12" r="1.8"/><circle cx="15" cy="12" r="1.8"/><circle cx="9" cy="18" r="1.8"/><circle cx="15" cy="18" r="1.8"/></svg>',
@@ -1257,13 +1299,23 @@ function sWelcome(){
     ov=el("div",{class:"settle",role:"status"},panda("tea"),el("b",{},t("settleTitle")),el("span",{},t("settleSub")));
     document.body.appendChild(ov); setTimeout(begin,1600);
   };
+  const startBtn=el("button",{class:"go big",disabled:true,onclick:start},t("start10"));
+  const grp= ai
+    ? el("section",{class:"grp ai"},el("span",{class:"gi","aria-hidden":"true"},svgNode(ICON.spark)),
+        el("div",{class:"stack",style:"gap:8px"},el("b",{class:"gl"},t("grpAiLabel")),el("p",{},t("grpAiText")),
+          el("ol",{class:"gsteps"},t("grpAiSteps").map(x=>el("li",{},x)))))
+    : el("section",{class:"grp ctrl"},el("span",{class:"gi","aria-hidden":"true"},svgNode(ICON.nospark)),
+        el("div",{class:"stack",style:"gap:8px"},el("b",{class:"gl"},t("grpCtrlLabel")),el("p",{},t("grpCtrlText"))));
+  const ack=el("label",{class:"check gack"},el("input",{type:"checkbox",id:"grp-ack",onchange:e=>{ startBtn.disabled=!e.target.checked; }}),el("span",{},el("b",{},ai?t("ackAi"):t("noAiAck"))));
   screen(
     panel("spark","laptop",t("welcomeTitle"), ai? t("aiHero") : t("ctrlHero")),
+    grp,
     el("div",{class:"card stack-lg"},
       el("ol",{class:"steps"}, t("welcomeSteps").map((s,i)=>el("li",{},el("span",{class:"n","aria-hidden":"true"},i+1),el("span",{},s)))),
       el("p",{class:"muted"},t("welcomeP2")),
       el("p",{class:"clock-note"},svgNode(ICON.clock),el("span",{},t("welcomeClock")))),
-    el("div",{class:"actions"},el("span"),el("button",{class:"go big",onclick:start},t("start10"))));
+    ack,
+    el("div",{class:"actions"},el("span"),startBtn));
 }
 
 const TASK_STEPS=["t1","t2","t3"];
@@ -1307,18 +1359,33 @@ const COPY={
     3:"补全这个 Python 函数，让它返回文本中出现次数最多的单词。大小写视为相同，返回小写形式。单词之间用空格分隔，没有标点，也不会出现并列。请使用 collections 里的 Counter。例如 top_word(\"The cat saw the dog\") 返回 \"the\"。\n\n"+T3_TEMPLATE }
 };
 function copyTask(n,btn){
-  const done=()=>{ btn.textContent=t("copied"); setTimeout(()=>btn.textContent=t("copy"),2500); };
-  try{ navigator.clipboard.writeText(COPY[LANG()][n]).then(done,()=>{ btn.textContent=t("copyFail"); }); }catch(e){ btn.textContent=t("copyFail"); }
+  const text=COPY[LANG()][n], lab=btn.querySelector(".lab")||btn;
+  const done=()=>{ lab.textContent=t("copied"); btn.classList.add("ok"); toast(t("copied")); setTimeout(()=>{ lab.textContent=t("copyBig"); btn.classList.remove("ok"); },2500); };
+  const oldWay=()=>{ try{ const ta=el("textarea",{style:"position:fixed;top:0;left:0;opacity:0",readonly:true}); ta.value=text; document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0,text.length); const ok=document.execCommand("copy"); ta.remove(); return ok; }catch(e){ return false; } };
+  const showBox=()=>{
+    const root=document.getElementById("modal-root"), close=()=>root.innerHTML="";
+    const ta=el("textarea",{class:"copybox",readonly:true,rows:"10"}); ta.value=text;
+    root.innerHTML=""; root.appendChild(el("div",{class:"modal",role:"dialog","aria-modal":"true"},
+      el("div",{class:"card stack fade"},el("h2",{},t("copyBoxTitle")),el("p",{class:"muted"},t("copyBoxText")),ta,
+        el("div",{class:"row",style:"justify-content:flex-end"},el("button",{class:"primary",onclick:close},t("copyBoxDone"))))));
+    ta.focus(); ta.select(); ta.setSelectionRange(0,text.length);
+  };
+  const fallback=()=>{ if(oldWay()) done(); else showBox(); };
+  try{ if(navigator.clipboard&&window.isSecureContext) navigator.clipboard.writeText(text).then(done,fallback); else fallback(); }catch(e){ fallback(); }
 }
 
 function taskFrame(n,title,lead,body){
   paintBar(taskTimer());
-  const copyBtn = draft.group==="AI" ? el("button",{type:"button",class:"small"},t("copy")) : null;
+  const ai=draft.group==="AI";
+  const copyBtn = ai ? el("button",{type:"button",class:"go copybig"},svgNode(ICON.copy),el("span",{class:"lab"},t("copyBig"))) : null;
   if(copyBtn) copyBtn.addEventListener("click",()=>copyTask(n,copyBtn));
+  const strip = ai
+    ? el("div",{class:"gstrip ai"},el("span",{class:"gtag"},svgNode(ICON.spark),t("stripAi")),copyBtn,el("span",{class:"small muted"},t("stripAiHint")))
+    : el("div",{class:"gstrip ctrl"},el("span",{class:"gtag"},svgNode(ICON.nospark),t("stripCtrl")),el("span",{class:"small muted"},t("stripCtrlHint")));
   const back=n>1?el("button",{onclick:()=>go("t"+(n-1))},t("back")):el("span");
   const next=n<3?el("button",{class:"primary big",onclick:()=>go("t"+(n+1))},t("nextTask"))
     :el("button",{class:"go big",onclick:()=>confirmBox(t("submitTitle"),t("submitText"),t("submit"),()=>submitTasks(false),false,t("goBack"))},t("submitTasks"));
-  screen(el("div",{class:"stack"},el("div",{class:"spread"},el("span",{class:"chip"},t("taskOf",n)),copyBtn),el("h1",{},title),lead?el("p",{},...[].concat(lead)):null),
+  screen(el("div",{class:"stack"},el("span",{class:"chip",style:"align-self:flex-start"},t("taskOf",n)),strip,el("h1",{},title),lead?el("p",{},...[].concat(lead)):null),
     body, el("div",{class:"actions"},back,next));
 }
 /* Task 1: tap tiles into place, drag to reorder */
