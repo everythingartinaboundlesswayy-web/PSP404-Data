@@ -2336,7 +2336,7 @@ function moreCard(A,C){
 /* ---------- routing ---------- */
 const ROUTES={setup:vSetup,results:vResults,analysis:vAnalysis,admin:vAdmin};
 function currentRoute(){ const h=location.hash.slice(1); if(!ROUTES[h]) return "setup"; if((h==="results"||h==="analysis")&&!isAdmin()) return "admin"; return h; }
-function route(){ inFlow=false; setKeys(null); if(currentRoute()!=="results") closeDetail(); participantMode=false; setProgress(null); const r=currentRoute(); if(location.hash.slice(1)!==r && r==="admin") history.replaceState(null,"","#admin"); paintBar(); ROUTES[r](); }
+function route(){ inFlow=false; setKeys(null); clearInterval(tick); if(currentRoute()!=="results") closeDetail(); participantMode=false; setProgress(null); const r=currentRoute(); if(location.hash.slice(1)!==r && r==="admin") history.replaceState(null,"","#admin"); paintBar(); ROUTES[r](); }
 function redraw(){ document.getElementById("modal-root").innerHTML=""; route(); }
 let pending=false;
 function typing(){ const a=document.activeElement; return a&&a.closest&&a.closest("#app,#drawer-root")&&/^(INPUT|TEXTAREA)$/.test(a.tagName); }
@@ -2351,9 +2351,12 @@ function dataChanged(){
   if(inFlow) return; // never jump out of a marking screen
   const y=window.scrollY; ROUTES[r](); window.scrollTo(0,y);
 }
-window.addEventListener("hashchange",()=>{ if(!participantMode) route(); });
-if(!joinFromLink()){
-  if(draft&&draft.remote) show();
+// #admin always opens the Admin page (the research group can get in from any screen); an unfinished session stays saved
+window.addEventListener("hashchange",()=>{ if(!participantMode||location.hash==="#admin") route(); });
+if(location.hash==="#admin") route();
+else if(!joinFromLink()){
+  // a link/open-link session resumes for participants; on a research-group device it waits on Run session (Continue or Delete)
+  if(draft&&draft.remote){ if(isAdmin()) route(); else show(); }
   else if(draft&&draft.step&&!["consent","welcome","done"].includes(draft.step)) show();
   else { if(draft&&draft.step==="done") clearDraft(); route(); }
 }
