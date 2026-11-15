@@ -844,7 +844,7 @@ const I18N={
   rows:code=>[
     ["What you'll do","3 short Python tasks (10 minutes), a few questions about your code, then 4 questions about you. About 18 minutes."],
     ["Groups","You've been placed at random in one of two groups. One group may use their own AI assistant; the other may not use AI or the internet."],
-    ["Your data","We save your answers and times under the code "+code+", never your name. AI group: we'll ask to see your AI chat at the end (without your name). Your initials are stored separately from your answers."],
+    ["Your data","We save your answers and times under the code "+code+", never your name. Your initials are stored separately from your answers."],
     ["Your choice","Taking part is voluntary. You can stop at any time. To remove your answers later, quote "+code+" before we start the analysis. It doesn't affect any course mark."],
     ["Risk","No more than everyday risk."],
     ["Contact", CONTACT_EMAIL || "Ask the experimenter for the group's email."]],
@@ -919,7 +919,7 @@ const I18N={
   rows:code=>[
     ["你需要做什么","3 个简短的 Python 任务（10 分钟），几个关于你代码的问题，然后是 4 个关于你的问题。总共约 18 分钟。"],
     ["分组","你已被随机分到两组中的一组。一组可以使用自己的 AI 助手；另一组不能使用 AI 或网络。"],
-    ["你的数据","我们只用编号 "+code+" 保存你的答案和用时，绝不记录你的姓名。AI 组：结束时我们会请你出示与 AI 的对话（不显示姓名）。你的姓名缩写与答案分开保存。"],
+    ["你的数据","我们只用编号 "+code+" 保存你的答案和用时，绝不记录你的姓名。你的姓名缩写与答案分开保存。"],
     ["自愿参加","参加完全自愿，你可以随时停止。如需删除你的答案，请在我们开始分析数据前提供编号 "+code+"。这不会影响任何课程成绩。"],
     ["风险","不超过日常生活中的风险。"],
     ["联系方式", CONTACT_EMAIL || "请向实验人员索取小组的邮箱。"]],
@@ -2014,7 +2014,6 @@ function detailBody(s){
     el("p",{class:"small muted"},"Python "+(q.python_months??"—")+" months · skill "+(q.python_self_rating??"—")+"/5 · AI use "+(q.ai_tool_use??"—")+"/5 · used Counter before: "+(q.used_counter_before??"—")+
       " · "+(s.level==="2+"?"two or more courses":"one course")+(s.created_at?" · "+new Date(s.created_at).toLocaleString():"")+(q.hard?" · “"+q.hard+"”":"")),
     assignedChoice(s),
-    s.group==="AI"? aiCoding(s) : null,
     el("label",{class:"f"},"Notes",textBox("notes-"+s.id,s.notes,v=>{ s.notes=v; saveSoon(s); })),
     el("div",{class:"row"},
       el("button",{onclick:()=>{ s.excluded=!s.excluded; saveSoon(s); dataChanged(true); paintDetail(); }},s.excluded?"Include in results":"Exclude from results"),
@@ -2347,9 +2346,8 @@ function moreCard(A,C){
       tr("Median skill (1–5)",fmtN(median(num(A,"python_self_rating"))),fmtN(median(num(C,"python_self_rating")))),
       tr("Used Counter before",cnt(A,s=>s.questionnaire?.used_counter_before==="yes"),cnt(C,s=>s.questionnaire?.used_counter_before==="yes")),
       tr("Code change fully correct",fa.filter(v=>v).length+" of "+fa.length,fc.filter(v=>v).length+" of "+fc.length),
-      ...["Delegation","Engaged","Minimal"].map(k=>{ const g=A.filter(s=>s.ai?.category===k); return tr("Understanding, AI "+k.toLowerCase()+" (n "+g.length+")",fmtN(median(und(g))),""); }),
-      tr("Understanding, Control (n "+C.length+")","",fmtN(median(und(C)))))),
-      el("p",{class:"small muted"},"Code change, Fisher's exact test (AI fewer fully correct): p = "+(fz?fmtP(fz.p_less):"—")+" one-sided, "+(fz?fmtP(fz.p_two):"—")+" two-sided. The ChatGPT-use rows are descriptive only.")));
+    )),
+      el("p",{class:"small muted"},"Code change, Fisher's exact test (AI fewer fully correct): p = "+(fz?fmtP(fz.p_less):"—")+" one-sided, "+(fz?fmtP(fz.p_two):"—")+" two-sided.")));
 }
 
 /* ---------- routing ---------- */
