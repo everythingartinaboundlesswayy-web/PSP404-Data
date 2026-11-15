@@ -1530,7 +1530,7 @@ function sAbout(){
   const finish=async()=>{
     if(q.python_months===undefined||q.python_months===""||isNaN(+q.python_months)) return err.textContent=t("errMonths");
     if(!q.python_self_rating||!q.ai_tool_use||!q.used_counter_before) return err.textContent=t("errQs");
-    const s={ id:draft.id, code:draft.code, group:draft.group, level:draft.level, pilot:draft.pilot, model:draft.model||"", created_at:draft.created_at, version:"kit-v2",
+    const s={ id:draft.id, code:draft.code, group:draft.group, level:draft.level, pilot:draft.pilot, model:draft.model||"", assigned:draft.assigned||"", created_at:draft.created_at, version:"kit-v2",
       lang:LANG(), consent:true, consent_date:draft.consent_date||null,
       started_at:draft.started_at, submitted_at:draft.submitted_at, time_sec:draft.time_sec, finished:draft.finished, u_time_sec:draft.u_time_sec,
       tasks:{t1_order:draft.tasks.t1_order||"",t2_code:draft.tasks.t2_code,t3_code:draft.tasks.t3_code}, understanding:draft.understanding,
