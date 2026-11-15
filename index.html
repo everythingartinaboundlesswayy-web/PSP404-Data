@@ -649,7 +649,7 @@ async function flush(){
   finally{ flushing=false; refreshStatus(); uploadListeners.forEach(f=>f()); }
 }
 function queue(item){ store.outbox.push(item); lsSet(OUTBOX_KEY,store.outbox); flush(); }
-setInterval(flush,15000); window.addEventListener("online",flush);
+setInterval(flush,15000); window.addEventListener("online",flush); setTimeout(flush,800);
 function saveSession(s){ s.updated_at=Date.now(); saveLocal(s); queue({action:"submit",session:s}); return Promise.resolve(); }
 function patchOf(s){ return { marks:s.marks||{}, ai:s.ai||{}, notes:s.notes||"", excluded:!!s.excluded, scores:s.scores||undefined, q3:s.q3, assigned:s.assigned||"" }; }
 async function pushUpdate(s){
@@ -902,6 +902,7 @@ const I18N={
   allDone:"All done. Thank you!", tellExp:"Please let the experimenter know you've finished.",
   yourCode:code=>["Your participant code is ",B(code),". Quote it if you'd like your answers removed later."],
   upDevice:"Saved on this device.", upFail:"Not sent yet: the connection dropped. Please keep this page open; it will try again.",
+  stillHere:"Your answers from last time haven't reached us yet. We're sending them now: please keep this page open until it says they've been sent.",
   upSending:"Sending your answers…", upSent:"Your answers have been sent. You can close this page.",
   already:"You've already taken part", alreadyNote:"Thank you! There's nothing more to do."
  },
@@ -975,6 +976,7 @@ const I18N={
   allDone:"全部完成，谢谢你！", tellExp:"请告诉实验人员你已完成。",
   yourCode:code=>["你的参与编号是 ",B(code),"。以后如需删除你的答案，请提供这个编号。"],
   upDevice:"已保存在这台设备上。", upFail:"尚未发送：网络连接中断。请保持此页面打开，系统会自动重试。",
+  stillHere:"你上次的答案还没有发送到我们这里。现在正在发送：请保持此页面打开，直到显示已发送。",
   upSending:"正在发送你的答案…", upSent:"你的答案已发送，可以关闭此页面了。",
   already:"你已经参加过了", alreadyNote:"谢谢！无需再做任何事。"
  }
@@ -1565,7 +1567,7 @@ function uploadLine(){
   const wrap=el("div",{class:"stack"});
   const n=el("div",{class:"hint small",role:"status"});
   const shown=Date.now();
-  const item=()=>store.outbox.find(x=>x.action==="submit"&&x.session&&x.session.id===(draft&&draft.saved_id));
+  const item=()=>store.outbox.find(x=>x.action==="submit"&&x.session&&(draft&&draft.saved_id?x.session.id===draft.saved_id:true));
   let help=null;
   const paint=()=>{
     if(!n.isConnected && help) return;
@@ -1627,7 +1629,13 @@ const researcherLink=()=>el("p",{class:"small",style:"text-align:center;margin-t
 function vJoin(opt={}){
   participantMode=true; clearInterval(tick); paintBar(); setProgress(null);
   document.documentElement.lang=LANG()==="zh"?"zh-CN":"en";
-  if(!opt.practice&&lsGet(DONE_KEY,[]).length){ goodbye("alreadyTitle","alreadyNote"); document.querySelector("#app>div").append(researcherLink()); return; }
+  if(!opt.practice&&lsGet(DONE_KEY,[]).length){
+    goodbye("alreadyTitle","alreadyNote");
+    const box=document.querySelector("#app>div");
+    // answers that never reached the Sheet are still on this phone: send them now, and show it
+    if(store.outbox.some(x=>x.action==="submit")){ box.append(el("p",{class:"hint warn small"},t("stillHere")),uploadLine()); flush(); }
+    box.append(researcherLink()); return;
+  }
   let level="", busy=false;
   const err=el("p",{class:"small",role:"alert",style:"color:var(--bad);font-weight:700"});
   const btn=el("button",{class:"go big"},t("jnGo"));
