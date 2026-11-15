@@ -639,17 +639,21 @@ async function flush(){
   if(!API||flushing||!store.outbox.length) return;
   flushing=true;
   try{
-    while(store.outbox.length){
-      const r=await api(store.outbox[0]);
-      if(!r||!r.ok) throw new Error((r&&r.error)||"upload failed");
-      store.outbox.shift(); lsSet(OUTBOX_KEY,store.outbox);
+    let refused=0;
+    for(let n=store.outbox.length;n>0&&store.outbox.length;n--){
+      const item=store.outbox[0], r=await api(item); // a network failure throws and stops here; we try again later
+      store.outbox.shift();
+      if(!r||!r.ok){ store.outbox.push(item); refused++; } // the sheet said no: keep it, but let the others go first
+      lsSet(OUTBOX_KEY,store.outbox);
     }
+    if(refused) throw new Error("refused");
     store.err="";
   }catch(e){ store.err="Couldn't reach the group's Google Sheet. Saved on this device; it will try again."; }
   finally{ flushing=false; refreshStatus(); uploadListeners.forEach(f=>f()); }
 }
 function queue(item){ store.outbox.push(item); lsSet(OUTBOX_KEY,store.outbox); flush(); }
 setInterval(flush,15000); window.addEventListener("online",flush); setTimeout(flush,800);
+window.addEventListener("beforeunload",e=>{ if(store.outbox.some(x=>x.action==="submit")){ e.preventDefault(); e.returnValue=""; } });
 function saveSession(s){ s.updated_at=Date.now(); saveLocal(s); queue({action:"submit",session:s}); return Promise.resolve(); }
 function patchOf(s){ return { marks:s.marks||{}, ai:s.ai||{}, notes:s.notes||"", excluded:!!s.excluded, scores:s.scores||undefined, q3:s.q3, assigned:s.assigned||"" }; }
 async function pushUpdate(s){
@@ -899,6 +903,7 @@ const I18N={
   hard:"Anything that made today hard? (optional)",
   errMonths:"Please enter roughly how many months you've used Python.", errQs:"Please answer questions 2, 3 and 4.",
   finish:"Finish", saving:"Saving…",
+  almostDone:"Almost done", keepOpen:"We're sending your answers. Please keep this page open for a moment.",
   allDone:"All done. Thank you!", tellExp:"Please let the experimenter know you've finished.",
   yourCode:code=>["Your participant code is ",B(code),". Quote it if you'd like your answers removed later."],
   upDevice:"Saved on this device.", upFail:"Not sent yet: the connection dropped. Please keep this page open; it will try again.",
@@ -973,6 +978,7 @@ const I18N={
   hard:"今天有什么让你觉得困难的地方吗？（选填）",
   errMonths:"请填写你大约使用 Python 的月数。", errQs:"请回答第 2、3、4 题。",
   finish:"完成", saving:"正在保存…",
+  almostDone:"马上就好", keepOpen:"正在发送你的答案，请先不要关闭此页面。",
   allDone:"全部完成，谢谢你！", tellExp:"请告诉实验人员你已完成。",
   yourCode:code=>["你的参与编号是 ",B(code),"。以后如需删除你的答案，请提供这个编号。"],
   upDevice:"已保存在这台设备上。", upFail:"尚未发送：网络连接中断。请保持此页面打开，系统会自动重试。",
@@ -1537,17 +1543,14 @@ function sAbout(){
       questionnaire:{...q,python_months:+q.python_months}, marks:{}, ai:{}, notes:"", excluded:false };
     btn.disabled=true; btn.textContent=t("saving");
     s.q3=scoreQ3(s.understanding?.q3_line1,s.understanding?.q3_line2);
-    try{
-      const r=await Promise.race([gradeSession(s),new Promise((_,rej)=>setTimeout(()=>rej(new Error("slow")),20000))]);
-      const sum=a=>a.reduce((x,y)=>x+y,0); s.scores={t1:sum(r.t1),t2:sum(r.t2),t3:sum(r.t3),mod:sum(r.mod)};
-    }catch(e){ /* the Results page checks the code later */ }
-    await saveSession(s); draft.saved_id=s.id;
+    // send straight away: checking the code here could take many seconds on a phone, and a page closed
+    // in that time would lose everything. The Results page checks the code and fills in the scores.
+    await saveSession(s); draft.saved_id=s.id; saveDraft();
     if(!draft.pilot){ const done=lsGet(DONE_KEY,[]); if(!done.includes(draft.code)){ done.push(draft.code); lsSet(DONE_KEY,done); } }
     go("done");
   };
   const scale=key=>choices([1,2,3,4,5].map(v=>[String(v),String(v)]),q[key]||"",v=>{ q[key]=v; save(); },"scale");
   const btn=el("button",{class:"go big",onclick:()=>finish()},t("finish"));
-  loadSkulpt().catch(()=>{});
   screen(el("div",{class:"stack"},el("div",{class:"label"},t("aboutYou")),el("h1",{},t("fourQ"))),
     el("div",{class:"card stack-lg"},
       el("label",{class:"f"},t("a1"),
@@ -1590,11 +1593,19 @@ function uploadLine(){
   const iv=setInterval(()=>{ if(!wrap.isConnected){ clearInterval(iv); uploadListeners.delete(paint); return; } paint(); },3000);
   return wrap;
 }
+const answersWaiting=()=>!!(draft&&draft.saved_id&&store.outbox.some(x=>x.action==="submit"&&x.session&&x.session.id===draft.saved_id));
 function sDone(){
   paintBar(); setProgress(null); renderJourney();
+  flush();
+  if(API&&answersWaiting()){
+    // still sending: ask them to keep the page open, then show the real ending once it has arrived
+    const again=()=>{ if(draft&&draft.step==="done"&&!answersWaiting()){ uploadListeners.delete(again); sDone(); } };
+    uploadListeners.add(again);
+    screen(panel("jade tall","laptop",t("almostDone"),t("keepOpen")), uploadLine(), el("p",{class:"small muted"},...t("yourCode",draft.code)));
+    return;
+  }
   const first=!draft.done_shown;
   if(first){ draft.done_shown=true; saveDraft(); setTimeout(confetti,250); }
-  flush();
   const hero=panel("spark tall","cheer",t("allDone"), draft.remote? null : t("tellExp"));
   const note=el("p",{class:"small muted"},...t("yourCode",draft.code));
   if(draft.remote){ screen(hero, uploadLine(), note); return; }
