@@ -1719,6 +1719,7 @@ function openLinkCard(){
       el("p",{class:"small",style:"font-weight:700"},state),
       el("p",{class:"small muted"},"Places per group is the most for each group. When both are full, the link tells new people the study is full. Set it to 0 for no limit: everyone is placed and the groups stay even."),
       el("div",{class:"row"},el("span",{class:"small"},"Places per group"),capIn,el("button",{class:"small",onclick:()=>save({places:+capIn.value||0})},"Save"),
+        cap? el("button",{class:"small primary",onclick:()=>save({places:0})},"No limit") : el("span",{class:"chip ok"},"✓ No limit"),
         el("span",{style:"flex:1"}),
         el("button",{class:"small "+(st.open?"danger":"primary"),onclick:()=>save({open:!st.open})},st.open?"Close the link":"Reopen the link")),
       el("div",{},el("button",{class:"small",onclick:()=>vJoin({practice:true})},"Try the link as a practice run")));
