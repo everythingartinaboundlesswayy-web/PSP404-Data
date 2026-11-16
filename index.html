@@ -643,15 +643,23 @@ async function flush(){
   try{
     let refused=0;
     for(let n=store.outbox.length;n>0&&store.outbox.length;n--){
-      const item=store.outbox[0], r=await api(item); // a network failure throws and stops here; we try again later
+      const item=store.outbox[0]; let r;
+      try{ r=await api(item); }
+      catch(e){ // network failure: keep it (unless a newer change for the same session has been queued meanwhile) and try again later
+        if(item.action==="update"&&store.outbox.slice(1).some(x=>x.action==="update"&&x.id===item.id)){ store.outbox.shift(); lsSet(OUTBOX_KEY,store.outbox); }
+        throw e; }
       store.outbox.shift();
-      if(!r||!r.ok){ store.outbox.push(item); refused++; } // the sheet said no: keep it, but let the others go first
+      if(!r||!r.ok){
+        const gone=item.action==="update"&&/not found/.test((r&&r.error)||"");
+        const newer=item.action==="update"&&store.outbox.some(x=>x.action==="update"&&x.id===item.id);
+        if(!gone&&!newer){ store.outbox.push(item); refused++; } // the sheet said no: keep it, but let the others go first
+      }
       lsSet(OUTBOX_KEY,store.outbox);
     }
     if(refused) throw new Error("refused");
     store.err="";
   }catch(e){ store.err="Couldn't reach the group's Google Sheet. Saved on this device; it will try again."; }
-  finally{ flushing=false; refreshStatus(); uploadListeners.forEach(f=>f()); }
+  finally{ flushing=false; refreshStatus(); uploadListeners.forEach(f=>f()); if(!store.err&&store.outbox.length) setTimeout(flush,300); }
 }
 function queue(item){ store.outbox.push(item); lsSet(OUTBOX_KEY,store.outbox); flush(); }
 setInterval(flush,15000); window.addEventListener("online",flush); setTimeout(flush,800);
@@ -660,9 +668,14 @@ function saveSession(s){ s.updated_at=Date.now(); saveLocal(s); queue({action:"s
 function patchOf(s){ return { marks:s.marks||{}, ai:s.ai||{}, notes:s.notes||"", excluded:!!s.excluded, scores:s.scores||undefined, q3:s.q3, assigned:s.assigned||"" }; }
 async function pushUpdate(s){
   if(!API||!store.key) return;
-  try{ const r=await api({action:"update",key:store.key,id:s.id,patch:patchOf(s)}); if(!r.ok) throw new Error(r.error); store.err=""; }
-  catch(e){ store.err="A change didn't reach the sheet ("+(e.message||"network")+"). Try again in a moment."; }
+  store.outbox=store.outbox.filter(x=>!(x.action==="update"&&x.id===s.id));
+  queue({action:"update",key:store.key,id:s.id,patch:patchOf(s)});
   refreshStatus();
+}
+// changes still on their way are laid over what the sheet sent back, so a refresh never hides them
+function applyPending(){
+  for(const x of store.outbox){ if(x.action!=="update") continue; const o=store.remote.get(x.id)||store.local[x.id]; if(!o) continue;
+    const p=x.patch; Object.assign(o,{marks:p.marks,ai:p.ai,notes:p.notes,excluded:p.excluded,assigned:p.assigned}); if(p.scores) o.scores=p.scores; if(p.q3!==undefined) o.q3=p.q3; }
 }
 function saveSoon(s){ s.updated_at=Date.now(); if(store.local[s.id]) saveLocal(s); clearTimeout(store.timers.get(s.id)); store.timers.set(s.id,setTimeout(()=>pushUpdate(s),600)); }
 async function removeSession(id){
@@ -683,7 +696,7 @@ async function loadRemote(){
     if(!j.ok){ store.keyOk=!/key/i.test(j.error||"") ? store.keyOk : false; store.err=j.error==="wrong key"?"":("The sheet replied: "+j.error); }
     else{
       store.keyOk=true; store.err="";
-      store.remote=new Map(j.sessions.map(x=>[x.id,x]));
+      store.remote=new Map(j.sessions.map(x=>[x.id,x])); applyPending();
       // sessions now safely in the sheet no longer need the local copy
       for(const id of Object.keys(store.local)) if(store.remote.has(id)) delete store.local[id];
       lsSet(LS_KEY,store.local);
@@ -816,9 +829,11 @@ function paintBar(extra){
 }
 function statusInner(){
   if(!API) return el("div",{class:"hint warn small"},t("stNotConnected"));
-  const pending=store.outbox.filter(x=>x.action==="submit").length;
-  if(store.err) return el("div",{class:"hint warn small"},store.err+(pending?" "+pending+" session"+(pending===1?"":"s")+" waiting to upload.":""));
+  const pending=store.outbox.filter(x=>x.action==="submit").length, changes=store.outbox.filter(x=>x.action==="update").length;
+  const wait=(pending?pending+" session"+(pending===1?"":"s"):"")+(pending&&changes?" and ":"")+(changes?changes+" change"+(changes===1?"":"s")+" (marks or notes)":"");
+  if(store.err) return el("div",{class:"hint warn small"},store.err+(wait?" "+wait+" waiting to send; the app keeps trying.":""));
   if(pending) return el("p",{class:"small muted"},t("stUploading",pending));
+  if(changes) return el("p",{class:"small muted"},"Saving "+wait+" to the sheet…");
   const tt=store.lastLoad? " Last refreshed "+new Date(store.lastLoad).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})+"." : "";
   return el("div",{class:"row"},el("span",{class:"small muted"},t("stOk")+tt), store.key? el("button",{class:"small",onclick:()=>loadRemote()},"Refresh") : null);
 }
