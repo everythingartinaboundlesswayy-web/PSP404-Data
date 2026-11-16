@@ -109,6 +109,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .copybig svg{width:20px;height:20px}
 .copybig.ok{background:var(--go);border-color:var(--go);box-shadow:0 4px 0 var(--ok)}
 .copybox{width:100%;font-family:var(--mono);font-size:13px;line-height:1.5}
+.need{color:var(--warn);font-weight:700;text-align:right;margin:0}
+.need:empty{display:none}
 .clock-note{display:flex;gap:10px;align-items:flex-start;margin:0;padding:12px 14px;border-radius:14px;background:var(--jade-soft);color:var(--ink);font-size:.95rem}
 .clock-note svg{width:18px;height:18px;flex:none;margin-top:2px;color:var(--jade-deep)}
 .settle{position:fixed;inset:0;z-index:30;display:grid;place-items:center;align-content:center;gap:8px;padding:24px;text-align:center;background:var(--jade);color:var(--ink)}
@@ -850,6 +852,8 @@ const I18N={
     ["Contact", CONTACT_EMAIL || "Ask the experimenter for the group's email."]],
   consent:"Your consent", adult:"I am 18 or older.", course:"I have completed at least one Python course.", agree:"I have read the above and agree to take part.",
   initials:"Type your initials to sign", initialsHint:"Letters only, e.g. JK", date:"Date",
+  toStart:"To start:", needTicks:"Tick the three boxes above.", needInitials:"Type your initials (letters only, e.g. JK).",
+  lettersOnly:"Please use English letters only, e.g. the first letters of your name (JK or ZW).", tooLong:"Just your initials, please: up to 6 letters.",
   yes:"I agree, let's start", no:"I don't want to take part",
   declineTitle:"Not taking part?", declineText:"That's completely fine. Nothing you've typed is kept.", declineOk:"Yes, stop here", back:"Back", goBack:"Go back",
   bye:"No problem at all. Thanks for stopping by!", byeNote:"Please let the experimenter know.",
@@ -925,6 +929,8 @@ const I18N={
     ["联系方式", CONTACT_EMAIL || "请向实验人员索取小组的邮箱。"]],
   consent:"你的同意", adult:"我已年满 18 岁。", course:"我至少修过一门 Python 课程。", agree:"我已阅读以上内容，并同意参加。",
   initials:"输入你的姓名拼音缩写作为签名", initialsHint:"只用字母，例如 ZW", date:"日期",
+  toStart:"开始之前：", needTicks:"请勾选上面的三个方框。", needInitials:"请输入你的姓名拼音缩写（只用字母，例如 ZW）。",
+  lettersOnly:"请只使用英文字母，例如姓名拼音的首字母（ZW）。", tooLong:"只需填写缩写：最多 6 个字母。",
   yes:"我同意，开始吧", no:"我不想参加",
   declineTitle:"不参加了吗？", declineText:"完全没问题。你填写的内容都不会被保存。", declineOk:"是的，到此为止", back:"返回", goBack:"返回",
   bye:"没关系，感谢你的关注！", byeNote:"请告诉实验人员。",
@@ -1270,11 +1276,22 @@ function sConsent(){
   paintBar();
   const c=consentState;
   const btn=el("button",{class:"go big",disabled:true},t("yes"));
-  const upd=()=>{ btn.disabled=!(c.adult&&c.course&&c.agree&&/^[A-Za-z]{1,4}$/.test(c.initials.replace(/[.\s]/g,""))); };
+  const need=el("p",{class:"small need",role:"status"});
+  const letters=()=>c.initials.replace(/[^A-Za-z]/g,"");
+  const upd=()=>{
+    const raw=c.initials.replace(/[.\s\-·]/g,""), L=letters();
+    let iniMsg="";
+    if(!raw) iniMsg=t("needInitials");
+    else if(raw!==L) iniMsg=t("lettersOnly");
+    else if(L.length>6) iniMsg=t("tooLong");
+    const ticks=c.adult&&c.course&&c.agree;
+    btn.disabled=!(ticks&&!iniMsg);
+    need.textContent= btn.disabled ? t("toStart")+" "+[ticks?"":t("needTicks"),iniMsg].filter(Boolean).join(" ") : "";
+  };
   const box=(k,text)=>el("label",{class:"check"},el("input",{type:"checkbox",checked:c[k],onchange:e=>{ c[k]=e.target.checked; upd(); }}),el("span",{},text));
   btn.addEventListener("click",()=>{
     const today=new Date().toISOString().slice(0,10);
-    saveConsent({ initials:c.initials.replace(/[.\s]/g,"").toUpperCase(), date:today, form:"consent-v1-"+LANG() });
+    saveConsent({ initials:letters().toUpperCase(), date:today, form:"consent-v1-"+LANG() });
     draft.consent_date=today; Object.assign(consentState,{adult:false,course:false,agree:false,initials:""}); go("welcome");
   });
   const decline=()=>confirmBox(t("declineTitle"),t("declineText"),t("declineOk"),()=>{ const tt=t("byeTitle"), sub=t("bye")+" "+t("byeNote"); clearDraft(); participantMode=true; paintBar(); setProgress(null); screen(panel("jade","bye",tt,sub)); },false,t("goBack"));
@@ -1291,6 +1308,7 @@ function sConsent(){
       box("adult",t("adult")), box("course",t("course")), box("agree",t("agree")),
       el("label",{class:"f"},t("initials"), initials),
       el("p",{class:"small muted"},t("date")+": "+new Date().toLocaleDateString(LANG()==="zh"?"zh-CN":undefined))),
+    need,
     el("div",{class:"actions"},el("button",{class:"quiet",onclick:decline},t("no")),btn));
 }
 
@@ -1691,6 +1709,7 @@ function openLinkCard(){
     const capIn=el("input",{type:"number",min:"0",max:"500",value:String(cap),style:"max-width:90px","aria-label":"Places per group"});
     const save=async patch=>{ body.style.opacity=".5"; let r=null; try{ r=await api(Object.assign({action:"places",key:store.key},patch)); }catch(e){} body.style.opacity=""; paint(r); };
     const state= !st.open? "The link is closed: anyone who opens it is told the study isn't taking new participants."
+      : !cap? "No limit: the link keeps placing everyone who opens it, keeping the two groups even."
       : full("AI")&&full("Control")? "Both groups are full, so anyone who opens the link is told the study is full."
       : full("AI")? "AI is full, so everyone who opens the link now goes to Control (no AI)."
       : full("Control")? "Control is full, so everyone who opens the link now goes to AI."
@@ -1698,6 +1717,7 @@ function openLinkCard(){
     body.append(row("AI","AI"),row("Control","Control (no AI)"),
       el("p",{class:"small muted"},"Counted: finished sessions (not practice or excluded), plus anyone who started through the link in the last 2 hours (shown as +)."),
       el("p",{class:"small",style:"font-weight:700"},state),
+      el("p",{class:"small muted"},"Places per group is the most for each group. When both are full, the link tells new people the study is full. Set it to 0 for no limit: everyone is placed and the groups stay even."),
       el("div",{class:"row"},el("span",{class:"small"},"Places per group"),capIn,el("button",{class:"small",onclick:()=>save({places:+capIn.value||0})},"Save"),
         el("span",{style:"flex:1"}),
         el("button",{class:"small "+(st.open?"danger":"primary"),onclick:()=>save({open:!st.open})},st.open?"Close the link":"Reopen the link")),
