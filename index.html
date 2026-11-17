@@ -109,6 +109,11 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .copybig svg{width:20px;height:20px}
 .copybig.ok{background:var(--go);border-color:var(--go);box-shadow:0 4px 0 var(--ok)}
 .copybox{width:100%;font-family:var(--mono);font-size:13px;line-height:1.5}
+.collect{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid var(--line);border-radius:16px;background:var(--surface)}
+.collect>span.small{flex:1 1 220px}
+.collect-dot{width:12px;height:12px;border-radius:50%;flex:none}
+.collect-dot.on{background:var(--go);box-shadow:0 0 0 4px var(--go-soft)}
+.collect-dot.off{background:var(--coral)}
 .need{color:var(--warn);font-weight:700;text-align:right;margin:0}
 .need:empty{display:none}
 .clock-note{display:flex;gap:10px;align-items:flex-start;margin:0;padding:12px 14px;border-radius:14px;background:var(--jade-soft);color:var(--ink);font-size:.95rem}
@@ -1705,6 +1710,20 @@ function vJoin(opt={}){
       el("p",{class:"clock-note"},svgNode(ICON.people),el("span",{},t("jnRandom")))),
     err, el("div",{class:"actions"},btn), opt.practice?null:researcherLink());
 }
+/* Admin: one switch to stop or start taking new participants (shown on Results) */
+function collectSwitch(){
+  const box=el("div",{class:"collect"},el("span",{class:"small muted"},"Checking the link…"));
+  const paint=st=>{
+    box.innerHTML="";
+    if(!st||!st.ok){ box.append(el("span",{class:"small muted"},"Couldn't check the link.")); return; }
+    const flip=async()=>{ box.style.opacity=".5"; let r=null; try{ r=await api({action:"places",key:store.key,open:!st.open}); }catch(e){} box.style.opacity=""; paint(r&&r.ok?r:st); };
+    box.append(el("span",{class:"collect-dot "+(st.open?"on":"off")}),
+      el("span",{class:"small"},el("b",{},st.open?"Collecting":"Stopped"),st.open?": the link is placing new people.":": the link isn't taking new people."),
+      el("button",{class:"small "+(st.open?"danger":"primary"),onclick:flip},st.open?"Stop collecting":"Start collecting"));
+  };
+  if(!API||!store.key) paint(null); else apiGet({action:"places",key:store.key}).then(paint,()=>paint(null));
+  return box;
+}
 /* Admin: places per group for the open link */
 function openLinkCard(){
   const url=location.origin+location.pathname, body=el("div",{class:"stack"},el("p",{class:"small muted"},"Loading places from the Google Sheet…"));
@@ -1736,7 +1755,7 @@ function openLinkCard(){
       el("div",{class:"row"},el("span",{class:"small"},"Places per group"),capIn,el("button",{class:"small",onclick:()=>save({places:+capIn.value||0})},"Save"),
         cap? el("button",{class:"small primary",onclick:()=>save({places:0})},"No limit") : el("span",{class:"chip ok"},"✓ No limit"),
         el("span",{style:"flex:1"}),
-        el("button",{class:"small "+(st.open?"danger":"primary"),onclick:()=>save({open:!st.open})},st.open?"Close the link":"Reopen the link")),
+        el("button",{class:"small "+(st.open?"danger":"primary"),onclick:()=>save({open:!st.open})},st.open?"Stop collecting":"Start collecting")),
       el("div",{},el("button",{class:"small",onclick:()=>vJoin({practice:true})},"Try the link as a practice run")));
   };
   if(!API||!store.key) paint(null); else apiGet({action:"places",key:store.key}).then(paint,()=>paint(null));
@@ -1901,6 +1920,7 @@ function vResults(){
     keyCard(),
     el("div",{class:"spread"},el("h1",{},"Results"),
       el("div",{class:"row"},el("button",{onclick:downloadCSV},"Download spreadsheet (CSV)"))),
+    collectSwitch(),
     grading==="running"? el("p",{class:"small muted"},"Checking participants' code…") : grading==="error"? el("div",{class:"hint warn small"},"The code checker didn't load. Check the internet connection and reload the page.") : null,
     all.length? markingCard() : null,
     el("div",{class:"stack"},
